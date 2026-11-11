@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block titolo %}Dashboard{% endblock %}
+{% block contenuto %}
+<div class="intestazione">
+    <div>
+        <h1>Catalogo prodotti</h1>
+        <p>Consulta, cerca e filtra il catalogo: i dati arrivano direttamente dal database.</p>
+    </div>
+</div>
+
+<section class="riassunto">
+    <div class="stat card"><span>Prodotti trovati</span><strong id="stat-totale">—</strong><small id="stat-su"></small></div>
+    <div class="stat card"><span>Disponibili</span><strong id="stat-disp">—</strong></div>
+    <div class="stat card"><span>In arrivo</span><strong id="stat-arrivo">—</strong></div>
+    <div class="stat card"><span>Esauriti</span><strong id="stat-esau">—</strong></div>
+    <div class="stat card"><span>Prezzo medio</span><strong id="stat-medio">—</strong></div>
+    <div class="stat card"><span>Valore in magazzino</span><strong id="stat-valore">—</strong></div>
+</section>
+
+<section class="grafico card">
+    <h2>📊 Prodotti per categoria <small class="muto" style="font-weight:400">— clicca una categoria per filtrare</small></h2>
+    <div class="barre" id="barre"></div>
+</section>
+
+{% include "_filtri.html" %}
+
+<div class="barra-risultati">
+    <span id="conteggio">Caricamento...</span>
+    <div class="vista" role="group" aria-label="Tipo di visualizzazione">
+        <button data-vista="griglia" class="attivo">▦ Griglia</button>
+        <button data-vista="tabella">☰ Tabella</button>
+    </div>
+</div>
+
+<div id="griglia" class="griglia"></div>
+
+<div id="contenitore-tabella" class="card tabella nascosto">
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th><button data-ordina="id">ID ↕</button></th>
+                <th><button data-ordina="nome">Nome ↕</button></th>
+                <th><button data-ordina="categoria">Categoria ↕</button></th>
+                <th><button data-ordina="referente">Referente ↕</button></th>
+                <th><button data-ordina="prezzo">Prezzo ↕</button></th>
+                <th><button data-ordina="quantita">Q.tà ↕</button></th>
+                <th><button data-ordina="disponibilita">Disponibilità ↕</button></th>
+                <th><button data-ordina="data_uscita">Uscita ↕</button></th>
+                <th><button data-ordina="data_produzione">Produzione ↕</button></th>
+            </tr>
+        </thead>
+        <tbody id="tabella"></tbody>
+    </table>
+</div>
+
+<!-- Finestra con il dettaglio di un prodotto -->
+<dialog id="dialogo-dettaglio">
+    <div class="modale-testa"><h2 id="dettaglio-titolo">Prodotto</h2><button class="chiudi" onclick="this.closest('dialog').close()" aria-label="Chiudi">×</button></div>
+    <div class="modale-corpo" id="dettaglio-corpo"></div>
+</dialog>
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='js/filtri.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

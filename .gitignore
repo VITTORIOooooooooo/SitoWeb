@@ -1,0 +1,14 @@
+# File con password: NON deve finire su GitHub
+.env
+
+# File generati da Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# File di sistema
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titolo %}Errore {{ codice }}{% endblock %}
+{% block contenuto %}
+<div class="errore-pagina">
+    <p class="codice">{{ codice }}</p>
+    <h1>{{ messaggio }}</h1>
+    <p class="muto">Se pensi che sia un errore, torna indietro e riprova.</p>
+    <div class="azioni" style="justify-content:center;margin-top:20px">
+        <a class="btn secondario" href="javascript:history.back()">← Indietro</a>
+        <a class="btn" href="{{ url_for('dashboard') if utente else url_for('login') }}">Vai alla home</a>
+    </div>
+</div>
+{% endblock %}

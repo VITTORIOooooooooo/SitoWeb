@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- token anti-CSRF letto da app.js e inviato con ogni richiesta fetch -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block titolo %}{{ azienda.nome }}{% endblock %} · {{ azienda.nome }}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link rel="stylesheet" href="{{ url_for('static', filename='stile.css') }}">
+    <script>
+    // Applico il tema PRIMA di disegnare la pagina (così non c'è il "lampo" bianco)
+    try {
+        const salvato = localStorage.getItem('tema');
+        if (salvato === 'scuro' || (!salvato && matchMedia('(prefers-color-scheme: dark)').matches))
+            document.documentElement.dataset.tema = 'scuro';
+    } catch {}
+    </script>
+</head>
+<body class="{% block classe_body %}{% endblock %}">
+    {% block sfondo %}{% endblock %}
+
+    <header class="topbar">
+        <div class="contenitore">
+            <a class="logo" href="{{ url_for('home') }}"><span class="simbolo">⚡</span>{{ azienda.nome }}</a>
+
+            {% set pagina = request.endpoint or '' %}
+            <nav class="menu" id="menu">
+                {% if utente %}
+                    <a href="{{ url_for('dashboard') }}" class="{{ 'attivo' if pagina == 'dashboard' }}">Dashboard</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="solo-mobile">Accedi</a>
+                    <a href="{{ url_for('registrati') }}" class="solo-mobile">Registrati</a>
+                {% endif %}
+            </nav>
+
+            <div class="destra">
+                <button class="tema" onclick="cambiaTema()" aria-label="Cambia tema" title="Cambia tema">🌓</button>
+                {% if utente %}
+                    <span class="chip-utente">
+                        <span class="avatar">{{ utente.username[:2] }}</span>
+                        <span class="nome-utente">{{ utente.username }}</span>
+                    </span>
+                    <form method="post" action="{{ url_for('logout') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button class="btn pericolo piccolo" type="submit">Esci</button>
+                    </form>
+                {% else %}
+                    {% if pagina != 'login' %}<a class="btn piccolo secondario no-mobile" href="{{ url_for('login') }}">Accedi</a>{% endif %}
+                    {% if pagina != 'registrati' %}<a class="btn piccolo no-mobile" href="{{ url_for('registrati') }}">Registrati</a>{% endif %}
+                {% endif %}
+                <button class="tema hamburger" onclick="document.getElementById('menu').classList.toggle('aperto')" aria-label="Apri menu">☰</button>
+            </div>
+        </div>
+    </header>
+
+    {% block corpo %}
+    <main class="contenitore pagina">
+        {% include "_flash.html" %}
+        {% block contenuto %}{% endblock %}
+    </main>
+    {% endblock %}
+
+    <footer class="footer">
+        <div class="contenitore">
+            <span>© {{ anno }} {{ azienda.ragione_sociale }} · {{ azienda.citta }}</span>
+            <span>Progetto scolastico di Sviluppo Web · Flask + MySQL</span>
+        </div>
+    </footer>
+
+    <div id="toast-zona" aria-live="polite"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block script %}{% endblock %}
+</body>
+</html>

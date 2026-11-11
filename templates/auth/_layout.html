@@ -1,0 +1,12 @@
+{# Layout comune delle pagine di accesso: sfondo animato + riquadro centrale #}
+{% extends "base.html" %}
+{% block classe_body %}pagina-auth{% endblock %}
+{% block sfondo %}<div class="sfondo"><span></span><span></span><span></span><span></span></div>{% endblock %}
+{% block corpo %}
+<main class="auth-centro">
+    <div class="auth-box">
+        {% include "_flash.html" %}
+        {% block riquadro %}{% endblock %}
+    </div>
+</main>
+{% endblock %}

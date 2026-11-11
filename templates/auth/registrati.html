@@ -1,0 +1,26 @@
+{% extends "auth/_layout.html" %}
+{% block titolo %}Registrati{% endblock %}
+{% block riquadro %}
+<h1>Crea un account</h1>
+<p class="sottotitolo">Registrati per consultare il catalogo prodotti.</p>
+
+<form method="post" action="{{ url_for('registrati') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="campo">
+        <label for="username">Username</label>
+        <input id="username" name="username" required pattern="[A-Za-z0-9_.]{3,30}" autocomplete="username"
+               title="3-30 caratteri: lettere, numeri, punto o underscore" value="{{ dati.username or '' }}" placeholder="es. mario.rossi">
+    </div>
+    <div class="campo">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required autocomplete="email" value="{{ dati.email or '' }}" placeholder="nome@esempio.it">
+    </div>
+    {% with nome_campo='password', etichetta='Password', id_box='box-forza' %}{% include "auth/_password.html" %}{% endwith %}
+    <div class="campo">
+        <label for="conferma">Ripeti password</label>
+        <input id="conferma" name="conferma" type="password" required autocomplete="new-password" placeholder="Ripeti la password">
+    </div>
+    <button class="btn pieno" type="submit">Crea account</button>
+</form>
+<p class="piede">Hai già un account? <a href="{{ url_for('login') }}">Accedi</a></p>
+{% endblock %}

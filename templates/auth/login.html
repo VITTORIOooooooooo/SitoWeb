@@ -1,0 +1,28 @@
+{% extends "auth/_layout.html" %}
+{% block titolo %}Accedi{% endblock %}
+{% block riquadro %}
+<h1>Bentornato 👋</h1>
+<p class="sottotitolo">Accedi per consultare il catalogo {{ azienda.nome }}</p>
+
+<form method="post" action="{{ url_for('login', next=request.args.get('next')) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="campo">
+        <label for="username">Username o email</label>
+        <input id="username" name="username" required autocomplete="username" autofocus
+               value="{{ credenziale or '' }}" placeholder="es. mario.rossi">
+    </div>
+    <div class="campo">
+        <label for="password">Password</label>
+        <div class="campo-password">
+            <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="La tua password">
+            <button type="button" class="mostra-pw" data-mostra-password aria-label="Mostra password">👁️</button>
+        </div>
+    </div>
+    <div class="riga-flex">
+        <label class="check"><input type="checkbox" name="ricordami"> Ricordami</label>
+    </div>
+    <button class="btn pieno" type="submit">Accedi</button>
+</form>
+
+<p class="piede">Non hai un account? <a href="{{ url_for('registrati') }}">Registrati</a></p>
+{% endblock %}
