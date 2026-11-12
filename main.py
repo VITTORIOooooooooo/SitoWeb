@@ -16,6 +16,7 @@ from flask import (Flask, abort, flash, g, jsonify, redirect,
 
 import config
 import DB_tool
+import email_tool
 import sicurezza
 
 app = Flask(__name__)
@@ -100,8 +101,20 @@ def home():
 
 
 # =====================================================================
-#  REGISTRAZIONE
+#  REGISTRAZIONE E CONFERMA EMAIL
 # =====================================================================
+
+def manda_link_conferma(utente_id, username, email):
+    """Crea un nuovo token, lo salva (in hash) e manda il link. Ritorna il link se l'email non è partita."""
+    token = sicurezza.genera_token()
+    scadenza = datetime.now() + timedelta(hours=config.ORE_VALIDITA_CONFERMA)
+    DB_tool.imposta_token_conferma(utente_id, sicurezza.hash_token(token), scadenza)
+    link = url_for("conferma", token=token, _external=True)
+    if email_tool.invia_conferma(email, username, link):
+        return None
+    print(f"\n[MODALITÀ SVILUPPO] Link di conferma per {username}: {link}\n")
+    return link
+
 
 @app.route("/registrati", methods=["GET", "POST"])
 def registrati():
@@ -137,9 +150,38 @@ def registrati():
             flash(e, "errore")
         return render_template("auth/registrati.html", dati=dati), 400
 
-    DB_tool.crea_utente(dati["username"], dati["email"], sicurezza.hash_password(password), attivo=True)
-    flash("Account creato! Ora puoi accedere.", "successo")
+    utente_id = DB_tool.crea_utente(dati["username"], dati["email"], sicurezza.hash_password(password))
+    link_sviluppo = manda_link_conferma(utente_id, dati["username"], dati["email"])
+    return render_template("auth/controlla_email.html", email=dati["email"], link_sviluppo=link_sviluppo,
+                           tipo="conferma", email_attiva=email_tool.email_configurata())
+
+
+@app.get("/conferma/<token>")
+def conferma(token):
+    utente = DB_tool.trova_utente_per_token_conferma(sicurezza.hash_token(token))
+    if utente is None:
+        flash("Link di conferma non valido o già utilizzato.", "errore")
+    elif utente["scadenza_conferma"] < datetime.now():
+        flash("Il link di conferma è scaduto: richiedine uno nuovo qui sotto.", "errore")
+        return redirect(url_for("reinvia_conferma"))
+    else:
+        DB_tool.attiva_utente(utente["id"])
+        flash("Email confermata! Ora puoi accedere.", "successo")
     return redirect(url_for("login"))
+
+
+@app.route("/reinvia-conferma", methods=["GET", "POST"])
+def reinvia_conferma():
+    if request.method == "GET":
+        return render_template("auth/email_form.html", tipo="conferma")
+    email = request.form.get("email", "").strip().lower()
+    utente = DB_tool.trova_utente_per_email(email)
+    link_sviluppo = None
+    if utente and not utente["attivo"]:
+        link_sviluppo = manda_link_conferma(utente["id"], utente["username"], utente["email"])
+    # Messaggio sempre uguale: non riveliamo se l'email è registrata
+    return render_template("auth/controlla_email.html", email=email, link_sviluppo=link_sviluppo,
+                           tipo="conferma", email_attiva=email_tool.email_configurata())
 
 
 # =====================================================================
@@ -160,6 +202,9 @@ def login():
     if utente is None or not sicurezza.verifica_password(password, utente["password_hash"]):
         flash("Username/email o password errati.", "errore")
         return render_template("auth/login.html", credenziale=credenziale), 401
+    if not utente["attivo"]:
+        flash("Account non ancora attivo: conferma la tua email (controlla anche lo spam).", "errore")
+        return render_template("auth/login.html", credenziale=credenziale, non_attivo=True), 403
 
     # Nuova sessione pulita (evita il "session fixation"), poi salvo solo l'id dell'utente
     csrf = session.get("csrf")
@@ -276,5 +321,7 @@ if __name__ == "__main__":
     if problema:
         print(f"\n❌ {problema}\n   Esegui prima:  python init_db.py\n")
         sys.exit(1)
+    if not email_tool.email_configurata():
+        print("ℹ️  Email non configurata nel file .env: i link di conferma verranno stampati qui.")
     print(f"✅ Server avviato su http://localhost:{config.PORTA}")
     app.run(host="0.0.0.0", port=config.PORTA, debug=config.DEBUG)

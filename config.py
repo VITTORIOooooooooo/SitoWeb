@@ -24,6 +24,18 @@ DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_NAME = os.getenv("DB_NAME", "sviluppo_web")
 
+# ---------- Email (SMTP) ----------
+# Se MAIL_USERNAME è vuoto l'app funziona in "modalità sviluppo":
+# il link di conferma viene stampato nel terminale e mostrato a schermo.
+MAIL_SERVER = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+MAIL_PORT = int(os.getenv("MAIL_PORT", "587"))
+MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
+MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
+MAIL_MITTENTE = os.getenv("MAIL_MITTENTE", MAIL_USERNAME)
+
+# ---------- Regole dell'applicazione ----------
+ORE_VALIDITA_CONFERMA = 24      # il link di conferma scade dopo 24 ore
+
 # ---------- Dati dell'azienda (usati nel titolo delle pagine e nel footer) ----------
 AZIENDA = {
     "nome": "Voltaria",

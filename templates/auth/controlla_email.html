@@ -1,0 +1,18 @@
+{% extends "auth/_layout.html" %}
+{% block titolo %}Controlla la tua email{% endblock %}
+{% block riquadro %}
+<div class="icona-grande">📬</div>
+<h1>Controlla la tua email</h1>
+<p class="sottotitolo">Se l'indirizzo <strong>{{ email }}</strong> appartiene a un account da attivare, ti abbiamo inviato un link di conferma. Aprilo per attivare l'account (controlla anche lo spam).</p>
+
+{% if link_sviluppo %}
+<div class="box-sviluppo">
+    <strong>🛠 Modalità sviluppo</strong> —
+    {% if email_attiva %}l'invio dell'email non è riuscito{% else %}l'invio email non è configurato nel file .env{% endif %},
+    quindi il link viene mostrato qui (e nel terminale):<br><br>
+    <a href="{{ link_sviluppo }}">{{ link_sviluppo }}</a>
+</div>
+{% endif %}
+
+<p class="piede"><a href="{{ url_for('reinvia_conferma') }}">Invia di nuovo</a> · <a href="{{ url_for('login') }}">Torna al login</a></p>
+{% endblock %}

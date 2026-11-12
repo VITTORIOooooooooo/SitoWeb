@@ -108,6 +108,8 @@ def crea_tabelle():
                     email VARCHAR(120) NOT NULL UNIQUE,
                     password_hash VARCHAR(255) NOT NULL,
                     attivo TINYINT(1) NOT NULL DEFAULT 0,
+                    token_conferma CHAR(64) NULL,
+                    scadenza_conferma DATETIME NULL,
                     ultimo_accesso DATETIME NULL,
                     creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -176,11 +178,12 @@ def verifica_struttura():
 CAMPI_UTENTE = "id, username, email, attivo, ultimo_accesso, creato_il"
 
 
-def crea_utente(username, email, password_hash, attivo=False):
+def crea_utente(username, email, password_hash, attivo=False,
+                token_conferma=None, scadenza_conferma=None):
     return scrivi(
-        """INSERT INTO utenti (username, email, password_hash, attivo)
-           VALUES (%s, %s, %s, %s)""",
-        (username, email.lower(), password_hash, int(attivo)),
+        """INSERT INTO utenti (username, email, password_hash, attivo, token_conferma, scadenza_conferma)
+           VALUES (%s, %s, %s, %s, %s, %s)""",
+        (username, email.lower(), password_hash, int(attivo), token_conferma, scadenza_conferma),
     )
 
 
@@ -197,12 +200,31 @@ def trova_utente_per_login(username_o_email):
     )
 
 
+def trova_utente_per_email(email):
+    return leggi("SELECT * FROM utenti WHERE email = %s", (email.lower(),), uno=True)
+
+
 def esiste_username(username):
     return leggi("SELECT id FROM utenti WHERE username = %s", (username,), uno=True) is not None
 
 
 def esiste_email(email):
     return leggi("SELECT id FROM utenti WHERE email = %s", (email.lower(),), uno=True) is not None
+
+
+def trova_utente_per_token_conferma(token_hash):
+    return leggi("SELECT * FROM utenti WHERE token_conferma = %s", (token_hash,), uno=True)
+
+
+def attiva_utente(utente_id):
+    """Attiva l'account e cancella il token di conferma (così il link non si può riusare)."""
+    scrivi("UPDATE utenti SET attivo = 1, token_conferma = NULL, scadenza_conferma = NULL WHERE id = %s",
+           (utente_id,))
+
+
+def imposta_token_conferma(utente_id, token_hash, scadenza):
+    scrivi("UPDATE utenti SET token_conferma = %s, scadenza_conferma = %s WHERE id = %s",
+           (token_hash, scadenza, utente_id))
 
 
 def aggiorna_ultimo_accesso(utente_id):

@@ -213,6 +213,7 @@ html[data-tema="scuro"] .sfondo span { opacity: .3; }
 .auth-box .riga-flex { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
 .auth-box .piede { margin-top: 20px; text-align: center; font-size: 14px; color: var(--sec); }
 .auth-box .flash-lista { margin: 0 0 16px; }
+.icona-grande { font-size: 46px; margin-bottom: 6px; }
 .campo-password { position: relative; }
 .campo-password input { padding-right: 46px !important; }
 .mostra-pw { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; cursor: pointer; padding: 6px; font-size: 16px; }
@@ -221,6 +222,8 @@ html[data-tema="scuro"] .sfondo span { opacity: .3; }
 .requisiti { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 12px; }
 .requisiti li { padding: 3px 8px; border-radius: 99px; background: var(--riga); color: var(--sec); border: 1px solid var(--bordo); }
 .requisiti li.ok { color: var(--verde); background: var(--verde-bg); border-color: transparent; }
+.box-sviluppo { margin-top: 18px; padding: 14px; border-radius: 11px; border: 2px dashed var(--giallo); background: var(--giallo-bg); font-size: 14px; word-break: break-all; }
+.box-sviluppo strong { color: var(--giallo); }
 
 /* ===================== Struttura area riservata ===================== */
 .pagina { padding: 26px 0 60px; }
