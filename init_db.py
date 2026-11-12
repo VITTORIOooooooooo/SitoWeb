@@ -1,7 +1,7 @@
 """
 init_db.py
 Prepara il database: crea le tabelle, carica i 30 prodotti di esempio
-e crea un account di prova.
+e crea due account pronti all'uso.
 
     python init_db.py          → chiede conferma prima di cancellare i dati
     python init_db.py --si     → nessuna domanda
@@ -21,8 +21,9 @@ import sicurezza
 CARTELLA_DATI = os.path.join(config.CARTELLA, "dati_iniziali")
 
 UTENTI_DEMO = [
-    # username, email, password
-    ("utente", "utente@voltaria.example", "Utente2026!"),
+    # username, email, password, ruolo
+    ("admin", "admin@voltaria.example", "Admin2026!", "gestore"),
+    ("utente", "utente@voltaria.example", "Utente2026!", "base"),
 ]
 
 
@@ -54,9 +55,9 @@ def main():
         DB_tool.crea_prodotto(p)
     print(f"✅ {len(prodotti)} prodotti inseriti")
 
-    for username, email, password in UTENTI_DEMO:
-        DB_tool.crea_utente(username, email, sicurezza.hash_password(password), attivo=True)
-        print(f"✅ Utente di prova →  username: {username}  password: {password}")
+    for username, email, password, ruolo in UTENTI_DEMO:
+        DB_tool.crea_utente(username, email, sicurezza.hash_password(password), ruolo, attivo=True)
+        print(f"✅ Utente {ruolo:8} →  username: {username:7}  password: {password}")
 
     print("\nFatto! Ora avvia il sito con:  python main.py")
 

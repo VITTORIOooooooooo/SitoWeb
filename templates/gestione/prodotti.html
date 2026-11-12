@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block titolo %}Gestione prodotti{% endblock %}
+{% block contenuto %}
+<div class="intestazione">
+    <div>
+        <h1>Gestione prodotti</h1>
+        <p>Area riservata ai gestori: crea, modifica ed elimina i prodotti del catalogo.</p>
+    </div>
+    <div class="azioni">
+        <button class="btn" id="nuovo-prodotto">＋ Nuovo prodotto</button>
+    </div>
+</div>
+
+{% include "gestione/_menu.html" %}
+{% include "_filtri.html" %}
+
+<div class="barra-risultati"><span id="conteggio">Caricamento...</span></div>
+
+<div class="card tabella">
+    <table>
+        <thead>
+            <tr>
+                <th><button data-ordina="id">ID ↕</button></th>
+                <th><button data-ordina="nome">Nome ↕</button></th>
+                <th><button data-ordina="categoria">Categoria ↕</button></th>
+                <th><button data-ordina="referente">Referente ↕</button></th>
+                <th><button data-ordina="prezzo">Prezzo ↕</button></th>
+                <th><button data-ordina="quantita">Q.tà ↕</button></th>
+                <th><button data-ordina="disponibilita">Disponibilità ↕</button></th>
+                <th><button data-ordina="data_uscita">Uscita ↕</button></th>
+                <th><button data-ordina="modificato_il">Modificato ↕</button></th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody id="tabella"></tbody>
+    </table>
+</div>
+
+<!-- Form di creazione / modifica (stessa finestra per entrambe le operazioni) -->
+<dialog id="dialogo-prodotto">
+    <form id="form-prodotto" novalidate>
+        <div class="modale-testa">
+            <h2 id="form-titolo">Nuovo prodotto</h2>
+            <button type="button" class="chiudi" onclick="this.closest('dialog').close()" aria-label="Chiudi">×</button>
+        </div>
+        <div class="modale-corpo">
+            <div class="form-griglia">
+                <div class="campo"><label for="f-nome">Nome prodotto *</label><input id="f-nome" name="nome" required maxlength="100"></div>
+                <div class="campo">
+                    <label for="f-categoria">Categoria *</label>
+                    <input id="f-categoria" name="categoria" required maxlength="50" list="lista-categorie" placeholder="Scegli o scrivine una nuova">
+                    <datalist id="lista-categorie">{% for c in categorie %}<option value="{{ c }}">{% endfor %}</datalist>
+                </div>
+                <div class="campo"><label for="f-referente">Referente *</label><input id="f-referente" name="referente" required maxlength="100" placeholder="Nome e cognome"></div>
+                <div class="campo">
+                    <label for="f-disponibilita">Disponibilità *</label>
+                    <select id="f-disponibilita" name="disponibilita">{% for d in disponibilita %}<option>{{ d }}</option>{% endfor %}</select>
+                </div>
+                <div class="campo"><label for="f-prezzo">Prezzo (€) *</label><input id="f-prezzo" name="prezzo" type="number" min="0" step="0.01" required></div>
+                <div class="campo"><label for="f-quantita">Quantità in magazzino *</label><input id="f-quantita" name="quantita" type="number" min="0" step="1" required value="0"></div>
+                <div class="campo"><label for="f-produzione">Data di produzione *</label><input id="f-produzione" name="data_produzione" type="date" required></div>
+                <div class="campo"><label for="f-uscita">Data di uscita *</label><input id="f-uscita" name="data_uscita" type="date" required></div>
+                <div class="campo intero"><label for="f-descrizione">Descrizione</label><textarea id="f-descrizione" name="descrizione" maxlength="2000"></textarea></div>
+            </div>
+            <p class="errore-form" id="errore-form" role="alert"></p>
+        </div>
+        <div class="modale-piede">
+            <button type="button" class="btn secondario" onclick="this.closest('dialog').close()">Annulla</button>
+            <button type="submit" class="btn" id="salva">Salva</button>
+        </div>
+    </form>
+</dialog>
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='js/filtri.js') }}"></script>
+<script src="{{ url_for('static', filename='js/gestione_prodotti.js') }}"></script>
+{% endblock %}

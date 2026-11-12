@@ -107,6 +107,7 @@ def crea_tabelle():
                     username VARCHAR(30) NOT NULL UNIQUE,
                     email VARCHAR(120) NOT NULL UNIQUE,
                     password_hash VARCHAR(255) NOT NULL,
+                    ruolo ENUM('base', 'gestore') NOT NULL DEFAULT 'base',
                     attivo TINYINT(1) NOT NULL DEFAULT 0,
                     token_conferma CHAR(64) NULL,
                     scadenza_conferma DATETIME NULL,
@@ -175,15 +176,15 @@ def verifica_struttura():
 #  UTENTI
 # =====================================================================
 
-CAMPI_UTENTE = "id, username, email, attivo, ultimo_accesso, creato_il"
+CAMPI_UTENTE = "id, username, email, ruolo, attivo, ultimo_accesso, creato_il"
 
 
-def crea_utente(username, email, password_hash, attivo=False,
+def crea_utente(username, email, password_hash, ruolo="base", attivo=False,
                 token_conferma=None, scadenza_conferma=None):
     return scrivi(
-        """INSERT INTO utenti (username, email, password_hash, attivo, token_conferma, scadenza_conferma)
-           VALUES (%s, %s, %s, %s, %s, %s)""",
-        (username, email.lower(), password_hash, int(attivo), token_conferma, scadenza_conferma),
+        """INSERT INTO utenti (username, email, password_hash, ruolo, attivo, token_conferma, scadenza_conferma)
+           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+        (username, email.lower(), password_hash, ruolo, int(attivo), token_conferma, scadenza_conferma),
     )
 
 
@@ -298,6 +299,20 @@ def crea_prodotto(dati):
         (dati["nome"], dati["categoria"], dati["referente"], dati["descrizione"], dati["prezzo"],
          dati["quantita"], dati["disponibilita"], dati["data_uscita"], dati["data_produzione"]),
     )
+
+
+def aggiorna_prodotto(prodotto_id, dati):
+    return scrivi(
+        """UPDATE prodotti SET nome = %s, categoria = %s, referente = %s, descrizione = %s,
+                  prezzo = %s, quantita = %s, disponibilita = %s, data_uscita = %s, data_produzione = %s
+           WHERE id = %s""",
+        (dati["nome"], dati["categoria"], dati["referente"], dati["descrizione"], dati["prezzo"],
+         dati["quantita"], dati["disponibilita"], dati["data_uscita"], dati["data_produzione"], prodotto_id),
+    )
+
+
+def elimina_prodotto(prodotto_id):
+    return scrivi("DELETE FROM prodotti WHERE id = %s", (prodotto_id,))
 
 
 def elenco_categorie():

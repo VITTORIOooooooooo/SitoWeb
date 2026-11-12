@@ -83,6 +83,19 @@ def login_richiesto(funzione):
     return controllo
 
 
+def solo_gestori(funzione):
+    """Decoratore: la pagina è riservata agli utenti con ruolo 'gestore'."""
+    @wraps(funzione)
+    @login_richiesto
+    def controllo(*args, **kwargs):
+        if g.utente["ruolo"] != "gestore":
+            if e_api():
+                return jsonify(successo=False, errore="Permesso negato: operazione riservata ai gestori"), 403
+            abort(403)
+        return funzione(*args, **kwargs)
+    return controllo
+
+
 def link_sicuro(destinazione):
     """Evita i redirect verso siti esterni (accetta solo percorsi interni tipo /dashboard)."""
     if destinazione and destinazione.startswith("/") and not destinazione.startswith("//") \
@@ -237,6 +250,17 @@ def dashboard():
 
 
 # =====================================================================
+#  AREA GESTORI: PAGINE
+# =====================================================================
+
+@app.get("/gestione")
+@solo_gestori
+def gestione_prodotti():
+    return render_template("gestione/prodotti.html", categorie=DB_tool.elenco_categorie(),
+                           disponibilita=DB_tool.DISPONIBILITA)
+
+
+# =====================================================================
 #  API JSON: PRODOTTI
 # =====================================================================
 
@@ -287,13 +311,84 @@ def api_statistiche():
     return jsonify(successo=True, dati=DB_tool.statistiche())
 
 
+def valida_prodotto(form):
+    """Controlla i campi del form prodotto. Restituisce (dati_puliti, lista_errori)."""
+    errori = []
+    dati = {
+        "nome": form.get("nome", "").strip()[:100],
+        "categoria": form.get("categoria", "").strip()[:50],
+        "referente": form.get("referente", "").strip()[:100],
+        "descrizione": form.get("descrizione", "").strip()[:2000],
+        "disponibilita": form.get("disponibilita", ""),
+        "data_uscita": data_o_none(form.get("data_uscita")),
+        "data_produzione": data_o_none(form.get("data_produzione")),
+    }
+    for campo in ("nome", "categoria", "referente"):
+        if not dati[campo]:
+            errori.append(f"Il campo «{campo}» è obbligatorio.")
+
+    prezzo = numero_o_none(form.get("prezzo"))
+    if prezzo is None or prezzo < 0 or prezzo > 99_999_999:
+        errori.append("Il prezzo deve essere un numero positivo.")
+    dati["prezzo"] = round(prezzo or 0, 2)
+
+    try:
+        dati["quantita"] = int(form.get("quantita", "0") or 0)
+        if dati["quantita"] < 0:
+            raise ValueError
+    except ValueError:
+        errori.append("La quantità deve essere un numero intero positivo.")
+
+    if dati["disponibilita"] not in DB_tool.DISPONIBILITA:
+        errori.append("Disponibilità non valida.")
+    if not dati["data_uscita"] or not dati["data_produzione"]:
+        errori.append("Inserisci data di produzione e data di uscita.")
+    elif dati["data_produzione"] > dati["data_uscita"]:
+        errori.append("La data di produzione non può essere successiva alla data di uscita.")
+    return dati, errori
+
+
+@app.post("/api/prodotti")
+@solo_gestori
+def api_crea_prodotto():
+    dati, errori = valida_prodotto(request.form)
+    if errori:
+        return jsonify(successo=False, errore=" ".join(errori)), 400
+
+    nuovo_id = DB_tool.crea_prodotto(dati)
+    return jsonify(successo=True, messaggio="Prodotto creato", id=nuovo_id), 201
+
+
+@app.put("/api/prodotti/<int:prodotto_id>")
+@solo_gestori
+def api_modifica_prodotto(prodotto_id):
+    if DB_tool.recupera_prodotto(prodotto_id) is None:
+        return jsonify(successo=False, errore="Prodotto non trovato"), 404
+    dati, errori = valida_prodotto(request.form)
+    if errori:
+        return jsonify(successo=False, errore=" ".join(errori)), 400
+
+    DB_tool.aggiorna_prodotto(prodotto_id, dati)
+    return jsonify(successo=True, messaggio="Prodotto aggiornato")
+
+
+@app.delete("/api/prodotti/<int:prodotto_id>")
+@solo_gestori
+def api_elimina_prodotto(prodotto_id):
+    p = DB_tool.recupera_prodotto(prodotto_id)
+    if p is None:
+        return jsonify(successo=False, errore="Prodotto non trovato"), 404
+    DB_tool.elimina_prodotto(prodotto_id)
+    return jsonify(successo=True, messaggio="Prodotto eliminato")
+
+
 # =====================================================================
 #  PAGINE DI ERRORE
 # =====================================================================
 
 MESSAGGI_ERRORE = {
     400: "Richiesta non valida.",
-    403: "Accesso negato.",
+    403: "Questa pagina è riservata agli utenti gestori.",
     404: "La pagina che cerchi non esiste.",
     500: "Errore interno del server.",
 }

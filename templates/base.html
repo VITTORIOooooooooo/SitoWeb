@@ -28,6 +28,9 @@
             <nav class="menu" id="menu">
                 {% if utente %}
                     <a href="{{ url_for('dashboard') }}" class="{{ 'attivo' if pagina == 'dashboard' }}">Dashboard</a>
+                    {% if utente.ruolo == 'gestore' %}
+                        <a href="{{ url_for('gestione_prodotti') }}" class="{{ 'attivo' if pagina.startswith('gestione') }}">Gestione</a>
+                    {% endif %}
                 {% else %}
                     <a href="{{ url_for('login') }}" class="solo-mobile">Accedi</a>
                     <a href="{{ url_for('registrati') }}" class="solo-mobile">Registrati</a>
@@ -40,6 +43,7 @@
                     <span class="chip-utente">
                         <span class="avatar">{{ utente.username[:2] }}</span>
                         <span class="nome-utente">{{ utente.username }}</span>
+                        <span class="ruolo {{ utente.ruolo }}">{{ utente.ruolo }}</span>
                     </span>
                     <form method="post" action="{{ url_for('logout') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -69,6 +73,16 @@
     </footer>
 
     <div id="toast-zona" aria-live="polite"></div>
+
+    <!-- Finestra di conferma riutilizzabile (usata da conferma() in app.js) -->
+    <dialog id="dialogo-conferma">
+        <div class="modale-testa"><h2 id="conferma-titolo">Sei sicuro?</h2></div>
+        <div class="modale-corpo"><p id="conferma-testo" style="margin:0"></p></div>
+        <div class="modale-piede">
+            <button class="btn secondario" value="no" id="conferma-no">Annulla</button>
+            <button class="btn pericolo" value="si" id="conferma-si">Conferma</button>
+        </div>
+    </dialog>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block script %}{% endblock %}

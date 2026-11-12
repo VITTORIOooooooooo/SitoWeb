@@ -138,6 +138,9 @@ html[data-tema="scuro"] .menu a.attivo { color: #fff; }
   background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; font-size: 13px; font-weight: 700;
   text-transform: uppercase;
 }
+.ruolo { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.ruolo.gestore { background: #7c3aed26; color: var(--accento); }
+.ruolo.base { background: var(--intestazione); color: var(--primario); }
 .tema { background: var(--card); border: 1px solid var(--bordo); border-radius: 9px; padding: 7px 10px; cursor: pointer; }
 .hamburger, .solo-mobile { display: none; }
 
@@ -232,6 +235,10 @@ html[data-tema="scuro"] .sfondo span { opacity: .3; }
 .intestazione p { margin: 6px 0 0; color: var(--sec); }
 .azioni { display: flex; gap: 10px; flex-wrap: wrap; }
 
+.sottomenu { display: flex; gap: 6px; padding: 5px; border-radius: 12px; background: var(--card); border: 1px solid var(--bordo); width: fit-content; margin-bottom: 20px; flex-wrap: wrap; }
+.sottomenu a { padding: 8px 14px; border-radius: 9px; text-decoration: none; color: var(--sec); font-weight: 600; font-size: 14px; }
+.sottomenu a.attivo { background: var(--primario); color: #fff; }
+html[data-tema="scuro"] .sottomenu a.attivo { color: #0f172a; }
 
 /* Card statistiche */
 .riassunto { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 20px; }

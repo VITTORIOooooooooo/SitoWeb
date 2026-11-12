@@ -4,8 +4,17 @@
 <div class="intestazione">
     <div>
         <h1>Catalogo prodotti</h1>
-        <p>Consulta, cerca e filtra il catalogo: i dati arrivano direttamente dal database.</p>
+        <p>
+            {% if utente.ruolo == 'gestore' %}
+                Sei un <strong>gestore</strong>: qui consulti il catalogo, nell'area Gestione puoi modificarlo.
+            {% else %}
+                Sei un <strong>utente base</strong>: puoi consultare, cercare e filtrare il catalogo.
+            {% endif %}
+        </p>
     </div>
+    {% if utente.ruolo == 'gestore' %}
+    <div class="azioni"><a class="btn" href="{{ url_for('gestione_prodotti') }}">⚙️ Gestisci prodotti</a></div>
+    {% endif %}
 </div>
 
 <section class="riassunto">

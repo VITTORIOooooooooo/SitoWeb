@@ -78,6 +78,21 @@ function toast(messaggio, tipo = 'successo') {
     setTimeout(() => t.remove(), 4000);
 }
 
+/* ---------- Finestra di conferma (sostituisce window.confirm) ---------- */
+function conferma(titolo, testo, etichetta = 'Elimina') {
+    const d = document.getElementById('dialogo-conferma');
+    document.getElementById('conferma-titolo').textContent = titolo;
+    document.getElementById('conferma-testo').textContent = testo;
+    document.getElementById('conferma-si').textContent = etichetta;
+    d.showModal();
+    return new Promise(risolvi => {
+        const chiudi = valore => { d.close(); risolvi(valore); };
+        document.getElementById('conferma-si').onclick = () => chiudi(true);
+        document.getElementById('conferma-no').onclick = () => chiudi(false);
+        d.oncancel = () => risolvi(false);
+    });
+}
+
 /* Ritarda una funzione finché l'utente non smette di scrivere (meno query al database) */
 function ritarda(funzione, ms = 250) {
     let timer;
