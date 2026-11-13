@@ -1,0 +1,8 @@
+1) rm -rf ~/Desktop/SitoWeb/*
+
+
+2)git add .
+git commit -m "quarto commit - v04"
+git push
+
+
