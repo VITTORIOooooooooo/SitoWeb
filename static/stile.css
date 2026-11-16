@@ -336,9 +336,15 @@ dialog[open] { animation: entra .2s ease; }
 .errore-form:not(:empty) { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: var(--rosso-bg); }
 
 /* Caricamento immagine */
+.dropzone {
   display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: center;
   padding: 14px; border: 2px dashed var(--bordo); border-radius: 12px; cursor: pointer; transition: border-color .15s, background .15s;
 }
+.dropzone.sopra { border-color: var(--primario); background: var(--intestazione); }
+.dropzone .anteprima { aspect-ratio: 4/3; border-radius: 9px; overflow: hidden; background: var(--riga); display: grid; place-items: center; font-size: 34px; color: var(--sec); }
+.dropzone .anteprima img { width: 100%; height: 100%; object-fit: cover; }
+.dropzone p { margin: 0; font-size: 14px; color: var(--sec); }
+.dropzone strong { color: var(--testo); }
 
 /* Dettaglio prodotto */
 .dettaglio { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
@@ -368,4 +374,5 @@ dialog[open] { animation: entra .2s ease; }
 @media (max-width: 600px) {
   .sezione { padding: 56px 0; }
   .barra { grid-template-columns: 90px 1fr 30px; }
+  .dropzone { grid-template-columns: 100px 1fr; }
 }

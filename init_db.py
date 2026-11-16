@@ -1,6 +1,6 @@
 """
 init_db.py
-Prepara il database: crea le tabelle, carica i 30 prodotti di esempio
+Prepara il database: crea le tabelle, carica i 30 prodotti di esempio (con le immagini)
 e crea due account pronti all'uso.
 
     python init_db.py          → chiede conferma prima di cancellare i dati
@@ -52,8 +52,13 @@ def main():
     with open(os.path.join(CARTELLA_DATI, "prodotti.json"), encoding="utf-8") as f:
         prodotti = json.load(f)
     for p in prodotti:
-        DB_tool.crea_prodotto(p)
-    print(f"✅ {len(prodotti)} prodotti inseriti")
+        immagine, tipo = None, None
+        percorso = os.path.join(CARTELLA_DATI, "immagini", p.pop("immagine", "") or "_")
+        if os.path.isfile(percorso):
+            with open(percorso, "rb") as img:
+                immagine, tipo = img.read(), "image/webp"
+        DB_tool.crea_prodotto(p, immagine, tipo)
+    print(f"✅ {len(prodotti)} prodotti inseriti (con immagini salvate nel database)")
 
     for username, email, password, ruolo in UTENTI_DEMO:
         DB_tool.crea_utente(username, email, sicurezza.hash_password(password), ruolo, attivo=True)

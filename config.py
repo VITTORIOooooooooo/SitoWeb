@@ -35,6 +35,8 @@ MAIL_MITTENTE = os.getenv("MAIL_MITTENTE", MAIL_USERNAME)
 
 # ---------- Regole dell'applicazione ----------
 ORE_VALIDITA_CONFERMA = 24      # il link di conferma scade dopo 24 ore
+MAX_MB_IMMAGINE = 5             # dimensione massima di un'immagine caricata
+LATO_MAX_IMMAGINE = 900         # le immagini vengono ridimensionate a max 900 px
 
 # ---------- Dati dell'azienda (usati nel titolo delle pagine e nel footer) ----------
 AZIENDA = {

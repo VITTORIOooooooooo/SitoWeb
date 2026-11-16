@@ -10,6 +10,9 @@ let inModifica = null;   // null = sto creando, altrimenti il prodotto che sto m
 
 const dialogo = document.getElementById('dialogo-prodotto');
 const form = document.getElementById('form-prodotto');
+const inputImmagine = document.getElementById('f-immagine');
+const anteprima = document.getElementById('anteprima');
+const dropzone = document.getElementById('dropzone');
 
 async function carica() {
     try {
@@ -27,11 +30,14 @@ function mostraTabella() {
     const q = Filtri.termine();
     tbody.replaceChildren();
     if (prodotti.length === 0) {
-        tbody.append(el('tr', {}, el('td', { colspan: 10, classe: 'vuoto', testo: 'Nessun prodotto trovato.' })));
+        tbody.append(el('tr', {}, el('td', { colspan: 11, classe: 'vuoto', testo: 'Nessun prodotto trovato.' })));
         return;
     }
     for (const p of prodotti) {
         tbody.append(el('tr', {},
+            el('td', { classe: 'miniatura' }, p.immagine_url
+                ? el('img', { src: p.immagine_url, alt: '', loading: 'lazy' })
+                : el('div', { classe: 'senza-foto', testo: '📦' })),
             el('td', {}, evidenzia(p.id, q)),
             el('td', {}, el('strong', {}, evidenzia(p.nome, q))),
             el('td', {}, evidenzia(p.categoria, q)),
@@ -55,6 +61,7 @@ function apriForm(p = null) {
     form.reset();
     document.getElementById('errore-form').textContent = '';
     document.getElementById('form-titolo').textContent = p ? `Modifica «${p.nome}»` : 'Nuovo prodotto';
+    document.getElementById('riga-rimuovi').classList.toggle('nascosto', !(p && p.ha_immagine));
 
     if (p) {
         form.nome.value = p.nome;
@@ -67,13 +74,46 @@ function apriForm(p = null) {
         form.data_uscita.value = p.data_uscita;
         form.descrizione.value = p.descrizione || '';
     }
+    mostraAnteprima(p && p.immagine_url ? p.immagine_url : null);
     dialogo.showModal();
 }
+
+function mostraAnteprima(url) {
+    anteprima.replaceChildren(url ? el('img', { src: url, alt: 'Anteprima' }) : '🖼️');
+}
+
+inputImmagine.addEventListener('change', () => {
+    const file = inputImmagine.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        toast('Immagine troppo grande (max 5 MB)', 'errore');
+        inputImmagine.value = '';
+        return;
+    }
+    mostraAnteprima(URL.createObjectURL(file));
+    document.getElementById('f-rimuovi').checked = false;
+});
+
+// Trascina e rilascia
+['dragenter', 'dragover'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('sopra'); }));
+['dragleave', 'drop'].forEach(ev => dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('sopra'); }));
+dropzone.addEventListener('drop', e => {
+    if (e.dataTransfer.files.length) {
+        inputImmagine.files = e.dataTransfer.files;
+        inputImmagine.dispatchEvent(new Event('change'));
+    }
+});
+
+document.getElementById('f-rimuovi').addEventListener('change', e => {
+    if (e.target.checked) { inputImmagine.value = ''; mostraAnteprima(null); }
+    else mostraAnteprima(inModifica && inModifica.immagine_url);
+});
 
 form.addEventListener('submit', async e => {
     e.preventDefault();
     if (!form.reportValidity()) return;          // controlli base del browser
-    const dati = new FormData(form);
+    const dati = new FormData(form);             // contiene anche il file dell'immagine
+    if (document.getElementById('f-rimuovi').checked) dati.set('rimuovi_immagine', '1');
 
     const bottone = document.getElementById('salva');
     bottone.disabled = true;
@@ -94,7 +134,7 @@ form.addEventListener('submit', async e => {
 
 /* ---------- Eliminazione ---------- */
 async function elimina(p) {
-    const ok = await conferma(`Eliminare «${p.nome}»?`, `Il prodotto #${p.id} verrà cancellato dal database. L'operazione non si può annullare.`);
+    const ok = await conferma(`Eliminare «${p.nome}»?`, `Il prodotto #${p.id} e la sua immagine verranno cancellati dal database. L'operazione non si può annullare.`);
     if (!ok) return;
     try {
         const risposta = await api('/api/prodotti/' + p.id, 'DELETE');

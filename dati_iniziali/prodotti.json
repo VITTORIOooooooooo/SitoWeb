@@ -8,7 +8,8 @@
     "quantita": 25,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-01-15",
-    "data_produzione": "2025-11-20"
+    "data_produzione": "2025-11-20",
+    "immagine": "01.webp"
   },
   {
     "nome": "Smartphone X",
@@ -19,7 +20,8 @@
     "quantita": 0,
     "disponibilita": "Esaurito",
     "data_uscita": "2026-03-10",
-    "data_produzione": "2026-01-05"
+    "data_produzione": "2026-01-05",
+    "immagine": "02.webp"
   },
   {
     "nome": "Tablet Air",
@@ -30,7 +32,8 @@
     "quantita": 12,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-02-20",
-    "data_produzione": "2025-12-15"
+    "data_produzione": "2025-12-15",
+    "immagine": "03.webp"
   },
   {
     "nome": "Monitor 4K",
@@ -41,7 +44,8 @@
     "quantita": 0,
     "disponibilita": "In arrivo",
     "data_uscita": "2026-06-01",
-    "data_produzione": "2026-04-12"
+    "data_produzione": "2026-04-12",
+    "immagine": "04.webp"
   },
   {
     "nome": "Cuffie Wireless",
@@ -52,7 +56,8 @@
     "quantita": 30,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-04-05",
-    "data_produzione": "2026-02-10"
+    "data_produzione": "2026-02-10",
+    "immagine": "05.webp"
   },
   {
     "nome": "Tastiera Meccanica",
@@ -63,7 +68,8 @@
     "quantita": 0,
     "disponibilita": "In arrivo",
     "data_uscita": "2026-07-15",
-    "data_produzione": "2026-05-20"
+    "data_produzione": "2026-05-20",
+    "immagine": "06.webp"
   },
   {
     "nome": "Mouse Gaming",
@@ -74,7 +80,8 @@
     "quantita": 0,
     "disponibilita": "Esaurito",
     "data_uscita": "2026-05-12",
-    "data_produzione": "2026-03-01"
+    "data_produzione": "2026-03-01",
+    "immagine": "07.webp"
   },
   {
     "nome": "Webcam HD",
@@ -85,7 +92,8 @@
     "quantita": 4,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-08-01",
-    "data_produzione": "2026-06-10"
+    "data_produzione": "2026-06-10",
+    "immagine": "08.webp"
   },
   {
     "nome": "SSD 1TB",
@@ -96,7 +104,8 @@
     "quantita": 7,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-09-10",
-    "data_produzione": "2026-07-15"
+    "data_produzione": "2026-07-15",
+    "immagine": "09.webp"
   },
   {
     "nome": "Stampante Laser",
@@ -107,7 +116,8 @@
     "quantita": 0,
     "disponibilita": "In arrivo",
     "data_uscita": "2026-10-20",
-    "data_produzione": "2026-08-25"
+    "data_produzione": "2026-08-25",
+    "immagine": "10.webp"
   },
   {
     "nome": "Laptop Air",
@@ -118,7 +128,8 @@
     "quantita": 60,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-02-05",
-    "data_produzione": "2025-12-01"
+    "data_produzione": "2025-12-01",
+    "immagine": "11.webp"
   },
   {
     "nome": "Smartphone Mini",
@@ -129,7 +140,8 @@
     "quantita": 7,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-03-25",
-    "data_produzione": "2026-01-20"
+    "data_produzione": "2026-01-20",
+    "immagine": "12.webp"
   },
   {
     "nome": "Monitor Gaming",
@@ -140,7 +152,8 @@
     "quantita": 0,
     "disponibilita": "Esaurito",
     "data_uscita": "2026-01-30",
-    "data_produzione": "2025-11-10"
+    "data_produzione": "2025-11-10",
+    "immagine": "13.webp"
   },
   {
     "nome": "Tablet Pro",
@@ -151,7 +164,8 @@
     "quantita": 0,
     "disponibilita": "In arrivo",
     "data_uscita": "2026-11-05",
-    "data_produzione": "2026-09-01"
+    "data_produzione": "2026-09-01",
+    "immagine": "14.webp"
   },
   {
     "nome": "Cuffie Gaming",
@@ -162,7 +176,8 @@
     "quantita": 25,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-05-20",
-    "data_produzione": "2026-03-15"
+    "data_produzione": "2026-03-15",
+    "immagine": "15.webp"
   },
   {
     "nome": "Speaker Bluetooth",
@@ -173,7 +188,8 @@
     "quantita": 4,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-04-18",
-    "data_produzione": "2026-02-25"
+    "data_produzione": "2026-02-25",
+    "immagine": "16.webp"
   },
   {
     "nome": "Powerbank 20000",
@@ -184,7 +200,8 @@
     "quantita": 0,
     "disponibilita": "Esaurito",
     "data_uscita": "2026-02-14",
-    "data_produzione": "2025-12-20"
+    "data_produzione": "2025-12-20",
+    "immagine": "17.webp"
   },
   {
     "nome": "Smartwatch Fit",
@@ -195,7 +212,8 @@
     "quantita": 60,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-06-15",
-    "data_produzione": "2026-04-30"
+    "data_produzione": "2026-04-30",
+    "immagine": "18.webp"
   },
   {
     "nome": "Router WiFi 6",
@@ -206,7 +224,8 @@
     "quantita": 0,
     "disponibilita": "In arrivo",
     "data_uscita": "2026-12-01",
-    "data_produzione": "2026-10-10"
+    "data_produzione": "2026-10-10",
+    "immagine": "19.webp"
   },
   {
     "nome": "Hard Disk 2TB",
@@ -217,7 +236,8 @@
     "quantita": 15,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-03-03",
-    "data_produzione": "2026-01-12"
+    "data_produzione": "2026-01-12",
+    "immagine": "20.webp"
   },
   {
     "nome": "Tastiera Wireless",
@@ -228,7 +248,8 @@
     "quantita": 4,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-07-01",
-    "data_produzione": "2026-05-05"
+    "data_produzione": "2026-05-05",
+    "immagine": "21.webp"
   },
   {
     "nome": "Mouse Ergonomico",
@@ -239,7 +260,8 @@
     "quantita": 0,
     "disponibilita": "Esaurito",
     "data_uscita": "2026-01-22",
-    "data_produzione": "2025-11-30"
+    "data_produzione": "2025-11-30",
+    "immagine": "22.webp"
   },
   {
     "nome": "Fotocamera Mirrorless",
@@ -250,7 +272,8 @@
     "quantita": 0,
     "disponibilita": "In arrivo",
     "data_uscita": "2026-11-20",
-    "data_produzione": "2026-09-18"
+    "data_produzione": "2026-09-18",
+    "immagine": "23.webp"
   },
   {
     "nome": "Console Next",
@@ -261,7 +284,8 @@
     "quantita": 0,
     "disponibilita": "Esaurito",
     "data_uscita": "2026-05-30",
-    "data_produzione": "2026-03-22"
+    "data_produzione": "2026-03-22",
+    "immagine": "24.webp"
   },
   {
     "nome": "Proiettore Full HD",
@@ -272,7 +296,8 @@
     "quantita": 7,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-08-18",
-    "data_produzione": "2026-06-25"
+    "data_produzione": "2026-06-25",
+    "immagine": "25.webp"
   },
   {
     "nome": "E-Reader",
@@ -283,7 +308,8 @@
     "quantita": 30,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-09-25",
-    "data_produzione": "2026-07-30"
+    "data_produzione": "2026-07-30",
+    "immagine": "26.webp"
   },
   {
     "nome": "Laptop Gaming",
@@ -294,7 +320,8 @@
     "quantita": 0,
     "disponibilita": "In arrivo",
     "data_uscita": "2026-10-05",
-    "data_produzione": "2026-08-08"
+    "data_produzione": "2026-08-08",
+    "immagine": "27.webp"
   },
   {
     "nome": "Smartphone Pro",
@@ -305,7 +332,8 @@
     "quantita": 30,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-09-12",
-    "data_produzione": "2026-07-22"
+    "data_produzione": "2026-07-22",
+    "immagine": "28.webp"
   },
   {
     "nome": "Stampante 3D",
@@ -316,7 +344,8 @@
     "quantita": 7,
     "disponibilita": "Disponibile",
     "data_uscita": "2026-06-28",
-    "data_produzione": "2026-04-17"
+    "data_produzione": "2026-04-17",
+    "immagine": "29.webp"
   },
   {
     "nome": "Microfono USB",
@@ -327,6 +356,7 @@
     "quantita": 0,
     "disponibilita": "Esaurito",
     "data_uscita": "2026-04-10",
-    "data_produzione": "2026-02-18"
+    "data_produzione": "2026-02-18",
+    "immagine": "30.webp"
   }
 ]

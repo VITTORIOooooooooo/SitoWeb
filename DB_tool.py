@@ -127,6 +127,8 @@ def crea_tabelle():
                     disponibilita VARCHAR(20) NOT NULL,
                     data_uscita DATE NOT NULL,
                     data_produzione DATE NOT NULL,
+                    immagine MEDIUMBLOB NULL,
+                    immagine_tipo VARCHAR(30) NULL,
                     creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     modificato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -165,7 +167,7 @@ def verifica_struttura():
         return f"Impossibile collegarsi al database: {errore}"
 
     colonne = {(r["TABLE_NAME"].lower(), r["COLUMN_NAME"].lower()) for r in righe}
-    necessarie = [("utenti", "password_hash"), ("prodotti", "categoria")]
+    necessarie = [("utenti", "password_hash"), ("prodotti", "immagine"), ("prodotti", "categoria")]
     mancanti = [f"{t}.{c}" for t, c in necessarie if (t, c) not in colonne]
     if mancanti:
         return "Struttura del database mancante o vecchia (" + ", ".join(mancanti) + ")."
@@ -236,9 +238,11 @@ def aggiorna_ultimo_accesso(utente_id):
 #  PRODOTTI
 # =====================================================================
 
-# Colonne restituite dalle query sui prodotti
+# Colonne restituite nelle liste: l'immagine NON viene letta (sarebbe pesante),
+# diciamo solo se c'è con "ha_immagine".
 CAMPI_PRODOTTO = """id, nome, categoria, referente, descrizione, prezzo, quantita, disponibilita,
-                    data_uscita, data_produzione, creato_il, modificato_il"""
+                    data_uscita, data_produzione, creato_il, modificato_il,
+                    (immagine IS NOT NULL) AS ha_immagine"""
 
 # Lista bianca per ORDER BY: i nomi delle colonne non possono essere passati come
 # parametri %s, quindi accettiamo SOLO questi valori.
@@ -284,35 +288,53 @@ def recupera_prodotti(cerca=None, categoria=None, disponibilita=None,
     direzione = "DESC" if direzione == "desc" else "ASC"
     query += f" ORDER BY {ordina} {direzione}, id ASC"
 
-    return [_pulisci(r) for r in leggi(query, parametri)]
+    prodotti = [_pulisci(r) for r in leggi(query, parametri)]
+    for p in prodotti:
+        p["ha_immagine"] = bool(p["ha_immagine"])
+    return prodotti
 
 
 def recupera_prodotto(prodotto_id):
-    return _pulisci(leggi(f"SELECT {CAMPI_PRODOTTO} FROM prodotti WHERE id = %s", (prodotto_id,), uno=True))
+    riga = _pulisci(leggi(f"SELECT {CAMPI_PRODOTTO} FROM prodotti WHERE id = %s", (prodotto_id,), uno=True))
+    if riga:
+        riga["ha_immagine"] = bool(riga["ha_immagine"])
+    return riga
 
 
-def crea_prodotto(dati):
+def crea_prodotto(dati, immagine=None, immagine_tipo=None):
     return scrivi(
         """INSERT INTO prodotti (nome, categoria, referente, descrizione, prezzo, quantita, disponibilita,
-                                 data_uscita, data_produzione)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                                 data_uscita, data_produzione, immagine, immagine_tipo)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (dati["nome"], dati["categoria"], dati["referente"], dati["descrizione"], dati["prezzo"],
-         dati["quantita"], dati["disponibilita"], dati["data_uscita"], dati["data_produzione"]),
+         dati["quantita"], dati["disponibilita"], dati["data_uscita"], dati["data_produzione"],
+         immagine, immagine_tipo),
     )
 
 
-def aggiorna_prodotto(prodotto_id, dati):
-    return scrivi(
-        """UPDATE prodotti SET nome = %s, categoria = %s, referente = %s, descrizione = %s,
-                  prezzo = %s, quantita = %s, disponibilita = %s, data_uscita = %s, data_produzione = %s
-           WHERE id = %s""",
-        (dati["nome"], dati["categoria"], dati["referente"], dati["descrizione"], dati["prezzo"],
-         dati["quantita"], dati["disponibilita"], dati["data_uscita"], dati["data_produzione"], prodotto_id),
-    )
+def aggiorna_prodotto(prodotto_id, dati, immagine=None, immagine_tipo=None, rimuovi_immagine=False):
+    query = """UPDATE prodotti SET nome = %s, categoria = %s, referente = %s, descrizione = %s,
+                      prezzo = %s, quantita = %s, disponibilita = %s, data_uscita = %s, data_produzione = %s"""
+    parametri = [dati["nome"], dati["categoria"], dati["referente"], dati["descrizione"], dati["prezzo"],
+                 dati["quantita"], dati["disponibilita"], dati["data_uscita"], dati["data_produzione"]]
+    if immagine is not None:            # nuova immagine caricata
+        query += ", immagine = %s, immagine_tipo = %s"
+        parametri += [immagine, immagine_tipo]
+    elif rimuovi_immagine:              # l'utente ha chiesto di toglierla
+        query += ", immagine = NULL, immagine_tipo = NULL"
+    query += " WHERE id = %s"
+    parametri.append(prodotto_id)
+    return scrivi(query, parametri)
 
 
 def elimina_prodotto(prodotto_id):
     return scrivi("DELETE FROM prodotti WHERE id = %s", (prodotto_id,))
+
+
+def recupera_immagine(prodotto_id):
+    """Restituisce i byte dell'immagine salvata nel database e il suo tipo (es. image/webp)."""
+    return leggi("SELECT immagine, immagine_tipo FROM prodotti WHERE id = %s AND immagine IS NOT NULL",
+                 (prodotto_id,), uno=True)
 
 
 def elenco_categorie():

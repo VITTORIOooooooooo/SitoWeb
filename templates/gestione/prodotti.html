@@ -20,6 +20,7 @@
     <table>
         <thead>
             <tr>
+                <th>Foto</th>
                 <th><button data-ordina="id">ID ↕</button></th>
                 <th><button data-ordina="nome">Nome ↕</button></th>
                 <th><button data-ordina="categoria">Categoria ↕</button></th>
@@ -61,6 +62,18 @@
                 <div class="campo"><label for="f-produzione">Data di produzione *</label><input id="f-produzione" name="data_produzione" type="date" required></div>
                 <div class="campo"><label for="f-uscita">Data di uscita *</label><input id="f-uscita" name="data_uscita" type="date" required></div>
                 <div class="campo intero"><label for="f-descrizione">Descrizione</label><textarea id="f-descrizione" name="descrizione" maxlength="2000"></textarea></div>
+                <div class="campo intero">
+                    <span class="etichetta">Immagine (salvata nel database)</span>
+                    <label class="dropzone" id="dropzone">
+                        <div class="anteprima" id="anteprima">🖼️</div>
+                        <div>
+                            <p><strong>Trascina qui un'immagine</strong> oppure clicca per sceglierla</p>
+                            <p>JPG, PNG, WEBP o GIF · max 5 MB · verrà ridimensionata e convertita in WebP</p>
+                            <input id="f-immagine" name="immagine" type="file" accept="image/*" hidden>
+                        </div>
+                    </label>
+                    <label class="check nascosto" id="riga-rimuovi"><input type="checkbox" id="f-rimuovi"> Rimuovi l'immagine attuale</label>
+                </div>
             </div>
             <p class="errore-form" id="errore-form" role="alert"></p>
         </div>

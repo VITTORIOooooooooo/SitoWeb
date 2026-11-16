@@ -5,14 +5,16 @@ L'accesso al database è tutto nel modulo DB_tool.py.
 
 Avvio:  python main.py   →   http://localhost:3000
 """
+import io
 import secrets
 import sys
 from datetime import datetime, timedelta
 from functools import wraps
 from urllib.parse import urlparse
 
-from flask import (Flask, abort, flash, g, jsonify, redirect,
+from flask import (Flask, Response, abort, flash, g, jsonify, redirect,
                    render_template, request, session, url_for)
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 import config
 import DB_tool
@@ -22,6 +24,7 @@ import sicurezza
 app = Flask(__name__)
 app.config.update(
     SECRET_KEY=config.SECRET_KEY,
+    MAX_CONTENT_LENGTH=(config.MAX_MB_IMMAGINE + 1) * 1024 * 1024,  # limite dimensione richieste
     SESSION_COOKIE_HTTPONLY=True,      # JavaScript non può leggere il cookie di sessione
     SESSION_COOKIE_SAMESITE="Lax",     # il cookie non parte da form di altri siti
     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
@@ -261,6 +264,47 @@ def gestione_prodotti():
 
 
 # =====================================================================
+#  IMMAGINI SALVATE NEL DATABASE
+# =====================================================================
+
+FORMATI_AMMESSI = {"JPEG", "PNG", "WEBP", "GIF"}
+
+
+def elabora_immagine(file):
+    """
+    Controlla che il file sia davvero un'immagine (non basta l'estensione!),
+    la raddrizza, la ridimensiona e la converte in WebP per occupare poco spazio nel database.
+    Restituisce (byte, tipo_mime).
+    """
+    try:
+        img = Image.open(file.stream)
+        formato = img.format
+        img.load()
+    except (UnidentifiedImageError, OSError):
+        raise ValueError("Il file caricato non è un'immagine valida.")
+    if formato not in FORMATI_AMMESSI:
+        raise ValueError("Formato non supportato: usa JPG, PNG, WEBP o GIF.")
+
+    img = ImageOps.exif_transpose(img)  # gira le foto scattate col telefono
+    img.thumbnail((config.LATO_MAX_IMMAGINE, config.LATO_MAX_IMMAGINE))
+    img = img.convert("RGBA" if img.mode in ("RGBA", "LA", "P") else "RGB")
+
+    buffer = io.BytesIO()
+    img.save(buffer, format="WEBP", quality=82)
+    return buffer.getvalue(), "image/webp"
+
+
+@app.get("/immagine/prodotto/<int:prodotto_id>")
+def immagine_prodotto(prodotto_id):
+    riga = DB_tool.recupera_immagine(prodotto_id)
+    if riga is None:
+        abort(404)
+    risposta = Response(riga["immagine"], mimetype=riga["immagine_tipo"])
+    risposta.headers["Cache-Control"] = "public, max-age=86400"  # il browser la tiene in cache per un giorno
+    return risposta
+
+
+# =====================================================================
 #  API JSON: PRODOTTI
 # =====================================================================
 
@@ -278,6 +322,16 @@ def data_o_none(valore):
         return None
 
 
+def con_url_immagine(p):
+    if p["ha_immagine"]:
+        # ?v=... cambia quando il prodotto viene modificato, così il browser scarica la nuova immagine
+        versione = p["modificato_il"].replace(" ", "").replace(":", "").replace("-", "")
+        p["immagine_url"] = url_for("immagine_prodotto", prodotto_id=p["id"], v=versione)
+    else:
+        p["immagine_url"] = None
+    return p
+
+
 @app.get("/api/prodotti")
 @login_richiesto
 def api_prodotti():
@@ -293,7 +347,7 @@ def api_prodotti():
         ordina=a.get("ordina", "id"),
         direzione=a.get("direzione", "asc"),
     )
-    return jsonify(successo=True, dati=prodotti)
+    return jsonify(successo=True, dati=[con_url_immagine(p) for p in prodotti])
 
 
 @app.get("/api/prodotti/<int:prodotto_id>")
@@ -302,7 +356,7 @@ def api_prodotto(prodotto_id):
     p = DB_tool.recupera_prodotto(prodotto_id)
     if p is None:
         return jsonify(successo=False, errore="Prodotto non trovato"), 404
-    return jsonify(successo=True, dati=p)
+    return jsonify(successo=True, dati=con_url_immagine(p))
 
 
 @app.get("/api/statistiche")
@@ -348,14 +402,26 @@ def valida_prodotto(form):
     return dati, errori
 
 
+def leggi_immagine_dal_form():
+    """Restituisce (byte, tipo) se è stata caricata un'immagine, altrimenti (None, None)."""
+    file = request.files.get("immagine")
+    if file is None or file.filename == "":
+        return None, None
+    return elabora_immagine(file)
+
+
 @app.post("/api/prodotti")
 @solo_gestori
 def api_crea_prodotto():
     dati, errori = valida_prodotto(request.form)
+    try:
+        immagine, tipo = leggi_immagine_dal_form()
+    except ValueError as e:
+        errori.append(str(e))
     if errori:
         return jsonify(successo=False, errore=" ".join(errori)), 400
 
-    nuovo_id = DB_tool.crea_prodotto(dati)
+    nuovo_id = DB_tool.crea_prodotto(dati, immagine, tipo)
     return jsonify(successo=True, messaggio="Prodotto creato", id=nuovo_id), 201
 
 
@@ -365,10 +431,15 @@ def api_modifica_prodotto(prodotto_id):
     if DB_tool.recupera_prodotto(prodotto_id) is None:
         return jsonify(successo=False, errore="Prodotto non trovato"), 404
     dati, errori = valida_prodotto(request.form)
+    try:
+        immagine, tipo = leggi_immagine_dal_form()
+    except ValueError as e:
+        errori.append(str(e))
     if errori:
         return jsonify(successo=False, errore=" ".join(errori)), 400
 
-    DB_tool.aggiorna_prodotto(prodotto_id, dati)
+    DB_tool.aggiorna_prodotto(prodotto_id, dati, immagine, tipo,
+                              rimuovi_immagine=request.form.get("rimuovi_immagine") == "1")
     return jsonify(successo=True, messaggio="Prodotto aggiornato")
 
 
@@ -390,6 +461,7 @@ MESSAGGI_ERRORE = {
     400: "Richiesta non valida.",
     403: "Questa pagina è riservata agli utenti gestori.",
     404: "La pagina che cerchi non esiste.",
+    413: f"File troppo grande: il limite è {config.MAX_MB_IMMAGINE} MB.",
     500: "Errore interno del server.",
 }
 
