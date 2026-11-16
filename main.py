@@ -46,7 +46,7 @@ def prima_di_ogni_richiesta():
         utente = DB_tool.trova_utente_per_id(session["utente_id"])
         if utente and utente["attivo"]:
             g.utente = utente
-        else:                      # utente eliminato o non più attivo
+        else:                      # utente eliminato o disattivato da un gestore
             session.pop("utente_id", None)
 
     # 2) Token anti-CSRF: un valore segreto per sessione che deve accompagnare ogni POST/PUT/DELETE
@@ -263,6 +263,12 @@ def gestione_prodotti():
                            disponibilita=DB_tool.DISPONIBILITA)
 
 
+@app.get("/gestione/utenti")
+@solo_gestori
+def gestione_utenti():
+    return render_template("gestione/utenti.html")
+
+
 # =====================================================================
 #  IMMAGINI SALVATE NEL DATABASE
 # =====================================================================
@@ -451,6 +457,75 @@ def api_elimina_prodotto(prodotto_id):
         return jsonify(successo=False, errore="Prodotto non trovato"), 404
     DB_tool.elimina_prodotto(prodotto_id)
     return jsonify(successo=True, messaggio="Prodotto eliminato")
+
+
+# =====================================================================
+#  API JSON: UTENTI (solo gestori)
+# =====================================================================
+
+@app.get("/api/utenti")
+@solo_gestori
+def api_utenti():
+    return jsonify(successo=True, dati=DB_tool.elenco_utenti(
+        cerca=request.args.get("q", "").strip() or None,
+        ruolo=request.args.get("ruolo") or None,
+    ), io=g.utente["id"])
+
+
+@app.post("/api/utenti")
+@solo_gestori
+def api_crea_utente():
+    """Un gestore può creare direttamente un utente già attivo (senza email di conferma)."""
+    f = request.form
+    username, email, password = f.get("username", "").strip(), f.get("email", "").strip().lower(), f.get("password", "")
+    ruolo = f.get("ruolo", "base")
+    errori = []
+    if not sicurezza.valida_username(username):
+        errori.append("Username non valido (3-30 caratteri: lettere, numeri, . e _).")
+    elif DB_tool.esiste_username(username):
+        errori.append("Username già in uso.")
+    if not sicurezza.valida_email(email):
+        errori.append("Email non valida.")
+    elif DB_tool.esiste_email(email):
+        errori.append("Email già registrata.")
+    if sicurezza.errori_password(password):
+        errori.append("Password debole: servono 8 caratteri con maiuscola, minuscola e numero.")
+    if ruolo not in ("base", "gestore"):
+        errori.append("Ruolo non valido.")
+    if errori:
+        return jsonify(successo=False, errore=" ".join(errori)), 400
+
+    nuovo_id = DB_tool.crea_utente(username, email, sicurezza.hash_password(password), ruolo, attivo=True)
+    return jsonify(successo=True, messaggio="Utente creato", id=nuovo_id), 201
+
+
+@app.put("/api/utenti/<int:utente_id>")
+@solo_gestori
+def api_modifica_utente(utente_id):
+    if utente_id == g.utente["id"]:
+        return jsonify(successo=False, errore="Non puoi modificare il tuo ruolo o disattivarti da solo."), 400
+    bersaglio = DB_tool.trova_utente_per_id(utente_id)
+    if bersaglio is None:
+        return jsonify(successo=False, errore="Utente non trovato"), 404
+    ruolo = request.form.get("ruolo", bersaglio["ruolo"])
+    attivo = request.form.get("attivo", str(bersaglio["attivo"])) == "1"
+    if ruolo not in ("base", "gestore"):
+        return jsonify(successo=False, errore="Ruolo non valido"), 400
+
+    DB_tool.aggiorna_utente(utente_id, ruolo, attivo)
+    return jsonify(successo=True, messaggio="Utente aggiornato")
+
+
+@app.delete("/api/utenti/<int:utente_id>")
+@solo_gestori
+def api_elimina_utente(utente_id):
+    if utente_id == g.utente["id"]:
+        return jsonify(successo=False, errore="Non puoi eliminare il tuo stesso account."), 400
+    bersaglio = DB_tool.trova_utente_per_id(utente_id)
+    if bersaglio is None:
+        return jsonify(successo=False, errore="Utente non trovato"), 404
+    DB_tool.elimina_utente(utente_id)
+    return jsonify(successo=True, messaggio="Utente eliminato")
 
 
 # =====================================================================

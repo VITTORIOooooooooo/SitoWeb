@@ -234,6 +234,27 @@ def aggiorna_ultimo_accesso(utente_id):
     scrivi("UPDATE utenti SET ultimo_accesso = NOW() WHERE id = %s", (utente_id,))
 
 
+def elenco_utenti(cerca=None, ruolo=None):
+    query = f"SELECT {CAMPI_UTENTE} FROM utenti WHERE 1=1"
+    parametri = []
+    if cerca:
+        query += " AND (username LIKE %s OR email LIKE %s)"
+        parametri += [f"%{cerca}%", f"%{cerca}%"]
+    if ruolo:
+        query += " AND ruolo = %s"
+        parametri.append(ruolo)
+    query += " ORDER BY id"
+    return [_pulisci(r) for r in leggi(query, parametri)]
+
+
+def aggiorna_utente(utente_id, ruolo, attivo):
+    return scrivi("UPDATE utenti SET ruolo = %s, attivo = %s WHERE id = %s", (ruolo, int(attivo), utente_id))
+
+
+def elimina_utente(utente_id):
+    return scrivi("DELETE FROM utenti WHERE id = %s", (utente_id,))
+
+
 # =====================================================================
 #  PRODOTTI
 # =====================================================================

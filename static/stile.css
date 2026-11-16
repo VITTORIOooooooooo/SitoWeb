@@ -302,6 +302,7 @@ tbody tr:hover { background: color-mix(in srgb, var(--intestazione) 60%, transpa
 td.miniatura img, td.miniatura .senza-foto { width: 56px; height: 42px; border-radius: 7px; object-fit: cover; font-size: 18px; }
 td .azioni { flex-wrap: nowrap; gap: 6px; }
 .vuoto { padding: 40px !important; color: var(--sec); text-align: center !important; }
+tr.io td { background: color-mix(in srgb, var(--primario) 8%, transparent); }
 
 /* Badge disponibilità */
 .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; }
@@ -315,6 +316,13 @@ html[data-tema="scuro"] .prodotto .foto .badge { background: #0f172af0; }
 mark { padding: 0 2px; color: #1e293b; background: #fde047; border-radius: 3px; }
 
 /* Interruttore on/off */
+.switch { position: relative; display: inline-block; width: 42px; height: 24px; vertical-align: middle; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch span { position: absolute; inset: 0; border-radius: 99px; background: #94a3b8; cursor: pointer; transition: .2s; }
+.switch span::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; border-radius: 50%; background: #fff; transition: .2s; }
+.switch input:checked + span { background: #22c55e; }
+.switch input:checked + span::before { transform: translateX(18px); }
+.switch input:disabled + span { opacity: .5; cursor: not-allowed; }
 
 /* ===================== Finestre modali (<dialog>) ===================== */
 dialog {

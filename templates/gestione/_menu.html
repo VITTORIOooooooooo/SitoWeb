@@ -1,4 +1,5 @@
 {# Menu delle pagine riservate ai gestori #}
 <nav class="sottomenu">
     <a href="{{ url_for('gestione_prodotti') }}" class="{{ 'attivo' if request.endpoint == 'gestione_prodotti' }}">📦 Prodotti</a>
+    <a href="{{ url_for('gestione_utenti') }}" class="{{ 'attivo' if request.endpoint == 'gestione_utenti' }}">👥 Utenti</a>
 </nav>
