@@ -99,6 +99,12 @@ def solo_gestori(funzione):
     return controllo
 
 
+def log(azione, dettaglio):
+    """Scrive un'azione nel registro attività."""
+    u = g.get("utente")
+    DB_tool.registra_attivita(u["id"] if u else None, u["username"] if u else "anonimo", azione, dettaglio)
+
+
 def link_sicuro(destinazione):
     """Evita i redirect verso siti esterni (accetta solo percorsi interni tipo /dashboard)."""
     if destinazione and destinazione.startswith("/") and not destinazione.startswith("//") \
@@ -167,6 +173,7 @@ def registrati():
         return render_template("auth/registrati.html", dati=dati), 400
 
     utente_id = DB_tool.crea_utente(dati["username"], dati["email"], sicurezza.hash_password(password))
+    DB_tool.registra_attivita(utente_id, dati["username"], "registrazione", "Nuovo account creato")
     link_sviluppo = manda_link_conferma(utente_id, dati["username"], dati["email"])
     return render_template("auth/controlla_email.html", email=dati["email"], link_sviluppo=link_sviluppo,
                            tipo="conferma", email_attiva=email_tool.email_configurata())
@@ -182,6 +189,7 @@ def conferma(token):
         return redirect(url_for("reinvia_conferma"))
     else:
         DB_tool.attiva_utente(utente["id"])
+        DB_tool.registra_attivita(utente["id"], utente["username"], "conferma", "Email confermata, account attivo")
         flash("Email confermata! Ora puoi accedere.", "successo")
     return redirect(url_for("login"))
 
@@ -230,6 +238,7 @@ def login():
     session.permanent = request.form.get("ricordami") == "on"
 
     DB_tool.aggiorna_ultimo_accesso(utente["id"])
+    DB_tool.registra_attivita(utente["id"], utente["username"], "login", "Accesso effettuato")
     flash(f"Bentornato, {utente['username']}!", "successo")
     return redirect(link_sicuro(request.args.get("next")))
 
@@ -267,6 +276,12 @@ def gestione_prodotti():
 @solo_gestori
 def gestione_utenti():
     return render_template("gestione/utenti.html")
+
+
+@app.get("/gestione/attivita")
+@solo_gestori
+def gestione_attivita():
+    return render_template("gestione/attivita.html", attivita=DB_tool.ultime_attivita(100))
 
 
 # =====================================================================
@@ -428,6 +443,7 @@ def api_crea_prodotto():
         return jsonify(successo=False, errore=" ".join(errori)), 400
 
     nuovo_id = DB_tool.crea_prodotto(dati, immagine, tipo)
+    log("crea_prodotto", f"Creato #{nuovo_id} «{dati['nome']}»")
     return jsonify(successo=True, messaggio="Prodotto creato", id=nuovo_id), 201
 
 
@@ -446,6 +462,7 @@ def api_modifica_prodotto(prodotto_id):
 
     DB_tool.aggiorna_prodotto(prodotto_id, dati, immagine, tipo,
                               rimuovi_immagine=request.form.get("rimuovi_immagine") == "1")
+    log("modifica_prodotto", f"Modificato #{prodotto_id} «{dati['nome']}»")
     return jsonify(successo=True, messaggio="Prodotto aggiornato")
 
 
@@ -456,6 +473,7 @@ def api_elimina_prodotto(prodotto_id):
     if p is None:
         return jsonify(successo=False, errore="Prodotto non trovato"), 404
     DB_tool.elimina_prodotto(prodotto_id)
+    log("elimina_prodotto", f"Eliminato #{prodotto_id} «{p['nome']}»")
     return jsonify(successo=True, messaggio="Prodotto eliminato")
 
 
@@ -496,6 +514,7 @@ def api_crea_utente():
         return jsonify(successo=False, errore=" ".join(errori)), 400
 
     nuovo_id = DB_tool.crea_utente(username, email, sicurezza.hash_password(password), ruolo, attivo=True)
+    log("crea_utente", f"Creato utente «{username}» ({ruolo})")
     return jsonify(successo=True, messaggio="Utente creato", id=nuovo_id), 201
 
 
@@ -513,6 +532,7 @@ def api_modifica_utente(utente_id):
         return jsonify(successo=False, errore="Ruolo non valido"), 400
 
     DB_tool.aggiorna_utente(utente_id, ruolo, attivo)
+    log("modifica_utente", f"«{bersaglio['username']}»: ruolo {ruolo}, {'attivo' if attivo else 'disattivato'}")
     return jsonify(successo=True, messaggio="Utente aggiornato")
 
 
@@ -525,6 +545,7 @@ def api_elimina_utente(utente_id):
     if bersaglio is None:
         return jsonify(successo=False, errore="Utente non trovato"), 404
     DB_tool.elimina_utente(utente_id)
+    log("elimina_utente", f"Eliminato utente «{bersaglio['username']}»")
     return jsonify(successo=True, messaggio="Utente eliminato")
 
 

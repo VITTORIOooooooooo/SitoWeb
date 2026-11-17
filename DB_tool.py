@@ -18,7 +18,7 @@ import pymysql.cursors
 
 import config
 
-TABELLE = ["prodotti", "utenti"]
+TABELLE = ["log_attivita", "prodotti", "utenti"]
 
 
 # =====================================================================
@@ -133,6 +133,17 @@ def crea_tabelle():
                     modificato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS log_attivita (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    utente_id INT NULL,
+                    username VARCHAR(30) NOT NULL,
+                    azione VARCHAR(30) NOT NULL,
+                    dettaglio VARCHAR(255) NOT NULL,
+                    creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
         conn.commit()
     finally:
         conn.close()
@@ -167,7 +178,8 @@ def verifica_struttura():
         return f"Impossibile collegarsi al database: {errore}"
 
     colonne = {(r["TABLE_NAME"].lower(), r["COLUMN_NAME"].lower()) for r in righe}
-    necessarie = [("utenti", "password_hash"), ("prodotti", "immagine"), ("prodotti", "categoria")]
+    necessarie = [("utenti", "password_hash"), ("prodotti", "immagine"), ("prodotti", "categoria"),
+                  ("log_attivita", "azione")]
     mancanti = [f"{t}.{c}" for t, c in necessarie if (t, c) not in colonne]
     if mancanti:
         return "Struttura del database mancante o vecchia (" + ", ".join(mancanti) + ")."
@@ -386,4 +398,19 @@ def statistiche():
         r["pezzi"] = int(r["pezzi"] or 0)
     totali["utenti_attivi"] = utenti
     return {"totali": totali, "per_categoria": per_categoria}
+
+
+# =====================================================================
+#  REGISTRO ATTIVITÀ
+# =====================================================================
+
+def registra_attivita(utente_id, username, azione, dettaglio):
+    scrivi("INSERT INTO log_attivita (utente_id, username, azione, dettaglio) VALUES (%s, %s, %s, %s)",
+           (utente_id, username, azione, dettaglio[:255]))
+
+
+def ultime_attivita(quante=50):
+    return [_pulisci(r) for r in leggi(
+        "SELECT id, username, azione, dettaglio, creato_il FROM log_attivita ORDER BY id DESC LIMIT %s",
+        (quante,))]
 

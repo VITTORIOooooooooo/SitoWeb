@@ -2,4 +2,5 @@
 <nav class="sottomenu">
     <a href="{{ url_for('gestione_prodotti') }}" class="{{ 'attivo' if request.endpoint == 'gestione_prodotti' }}">📦 Prodotti</a>
     <a href="{{ url_for('gestione_utenti') }}" class="{{ 'attivo' if request.endpoint == 'gestione_utenti' }}">👥 Utenti</a>
+    <a href="{{ url_for('gestione_attivita') }}" class="{{ 'attivo' if request.endpoint == 'gestione_attivita' }}">🕑 Registro attività</a>
 </nav>

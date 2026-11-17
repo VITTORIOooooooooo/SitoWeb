@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block titolo %}Registro attività{% endblock %}
+{% block contenuto %}
+<div class="intestazione">
+    <div>
+        <h1>Registro attività</h1>
+        <p>Chi ha fatto cosa e quando: ogni operazione importante viene salvata nel database.</p>
+    </div>
+</div>
+
+{% include "gestione/_menu.html" %}
+
+<section class="card blocco">
+    <h2>🕑 Ultime attività <small class="muto" style="font-weight:400">(ultime 100)</small></h2>
+    <ul class="registro">
+        {% for a in attivita %}
+        <li>
+            <span class="azione {{ a.azione }}">{{ a.azione.replace('_', ' ') }}</span>
+            <span><strong>{{ a.username }}</strong> — {{ a.dettaglio }}</span>
+            <time>{{ a.creato_il }}</time>
+        </li>
+        {% else %}
+        <li class="muto">Nessuna attività registrata.</li>
+        {% endfor %}
+    </ul>
+</section>
+{% endblock %}
