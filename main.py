@@ -18,7 +18,6 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 import config
 import DB_tool
-import email_tool
 import sicurezza
 
 app = Flask(__name__)
@@ -99,12 +98,6 @@ def solo_gestori(funzione):
     return controllo
 
 
-def log(azione, dettaglio):
-    """Scrive un'azione nel registro attività."""
-    u = g.get("utente")
-    DB_tool.registra_attivita(u["id"] if u else None, u["username"] if u else "anonimo", azione, dettaglio)
-
-
 def link_sicuro(destinazione):
     """Evita i redirect verso siti esterni (accetta solo percorsi interni tipo /dashboard)."""
     if destinazione and destinazione.startswith("/") and not destinazione.startswith("//") \
@@ -114,51 +107,17 @@ def link_sicuro(destinazione):
 
 
 # =====================================================================
-#  PAGINE PUBBLICHE: AZIENDA E CONTATTI
+#  HOME
 # =====================================================================
 
 @app.get("/")
 def home():
-    return redirect(url_for("azienda"))
-
-
-@app.get("/azienda")
-def azienda():
-    return render_template(
-        "azienda.html",
-        stat=DB_tool.statistiche(),
-        in_evidenza=DB_tool.prodotti_in_evidenza(6),
-    )
-
-
-@app.post("/contatti")
-def contatti():
-    nome = request.form.get("nome", "").strip()
-    email = request.form.get("email", "").strip()
-    testo = request.form.get("testo", "").strip()
-    if not nome or not sicurezza.valida_email(email) or len(testo) < 10:
-        flash("Compila tutti i campi: nome, email valida e un messaggio di almeno 10 caratteri.", "errore")
-    else:
-        DB_tool.salva_messaggio(nome[:80], email[:120], testo[:3000])
-        flash("Messaggio inviato! Ti risponderemo il prima possibile.", "successo")
-    return redirect(url_for("azienda") + "#contatti")
+    return redirect(url_for("dashboard"))
 
 
 # =====================================================================
-#  REGISTRAZIONE E CONFERMA EMAIL
+#  REGISTRAZIONE
 # =====================================================================
-
-def manda_link_conferma(utente_id, username, email):
-    """Crea un nuovo token, lo salva (in hash) e manda il link. Ritorna il link se l'email non è partita."""
-    token = sicurezza.genera_token()
-    scadenza = datetime.now() + timedelta(hours=config.ORE_VALIDITA_CONFERMA)
-    DB_tool.imposta_token_conferma(utente_id, sicurezza.hash_token(token), scadenza)
-    link = url_for("conferma", token=token, _external=True)
-    if email_tool.invia_conferma(email, username, link):
-        return None
-    print(f"\n[MODALITÀ SVILUPPO] Link di conferma per {username}: {link}\n")
-    return link
-
 
 @app.route("/registrati", methods=["GET", "POST"])
 def registrati():
@@ -194,40 +153,9 @@ def registrati():
             flash(e, "errore")
         return render_template("auth/registrati.html", dati=dati), 400
 
-    utente_id = DB_tool.crea_utente(dati["username"], dati["email"], sicurezza.hash_password(password))
-    DB_tool.registra_attivita(utente_id, dati["username"], "registrazione", "Nuovo account creato")
-    link_sviluppo = manda_link_conferma(utente_id, dati["username"], dati["email"])
-    return render_template("auth/controlla_email.html", email=dati["email"], link_sviluppo=link_sviluppo,
-                           tipo="conferma", email_attiva=email_tool.email_configurata())
-
-
-@app.get("/conferma/<token>")
-def conferma(token):
-    utente = DB_tool.trova_utente_per_token_conferma(sicurezza.hash_token(token))
-    if utente is None:
-        flash("Link di conferma non valido o già utilizzato.", "errore")
-    elif utente["scadenza_conferma"] < datetime.now():
-        flash("Il link di conferma è scaduto: richiedine uno nuovo qui sotto.", "errore")
-        return redirect(url_for("reinvia_conferma"))
-    else:
-        DB_tool.attiva_utente(utente["id"])
-        DB_tool.registra_attivita(utente["id"], utente["username"], "conferma", "Email confermata, account attivo")
-        flash("Email confermata! Ora puoi accedere.", "successo")
+    DB_tool.crea_utente(dati["username"], dati["email"], sicurezza.hash_password(password), attivo=True)
+    flash("Account creato! Ora puoi accedere.", "successo")
     return redirect(url_for("login"))
-
-
-@app.route("/reinvia-conferma", methods=["GET", "POST"])
-def reinvia_conferma():
-    if request.method == "GET":
-        return render_template("auth/email_form.html", tipo="conferma")
-    email = request.form.get("email", "").strip().lower()
-    utente = DB_tool.trova_utente_per_email(email)
-    link_sviluppo = None
-    if utente and not utente["attivo"]:
-        link_sviluppo = manda_link_conferma(utente["id"], utente["username"], utente["email"])
-    # Messaggio sempre uguale: non riveliamo se l'email è registrata
-    return render_template("auth/controlla_email.html", email=email, link_sviluppo=link_sviluppo,
-                           tipo="conferma", email_attiva=email_tool.email_configurata())
 
 
 # =====================================================================
@@ -249,8 +177,8 @@ def login():
         flash("Username/email o password errati.", "errore")
         return render_template("auth/login.html", credenziale=credenziale), 401
     if not utente["attivo"]:
-        flash("Account non ancora attivo: conferma la tua email (controlla anche lo spam).", "errore")
-        return render_template("auth/login.html", credenziale=credenziale, non_attivo=True), 403
+        flash("Questo account è stato disattivato da un gestore.", "errore")
+        return render_template("auth/login.html", credenziale=credenziale), 403
 
     # Nuova sessione pulita (evita il "session fixation"), poi salvo solo l'id dell'utente
     csrf = session.get("csrf")
@@ -260,7 +188,6 @@ def login():
     session.permanent = request.form.get("ricordami") == "on"
 
     DB_tool.aggiorna_ultimo_accesso(utente["id"])
-    DB_tool.registra_attivita(utente["id"], utente["username"], "login", "Accesso effettuato")
     flash(f"Bentornato, {utente['username']}!", "successo")
     return redirect(link_sicuro(request.args.get("next")))
 
@@ -298,13 +225,6 @@ def gestione_prodotti():
 @solo_gestori
 def gestione_utenti():
     return render_template("gestione/utenti.html")
-
-
-@app.get("/gestione/attivita")
-@solo_gestori
-def gestione_attivita():
-    return render_template("gestione/attivita.html", attivita=DB_tool.ultime_attivita(100),
-                           messaggi=DB_tool.elenco_messaggi())
 
 
 # =====================================================================
@@ -466,7 +386,6 @@ def api_crea_prodotto():
         return jsonify(successo=False, errore=" ".join(errori)), 400
 
     nuovo_id = DB_tool.crea_prodotto(dati, immagine, tipo)
-    log("crea_prodotto", f"Creato #{nuovo_id} «{dati['nome']}»")
     return jsonify(successo=True, messaggio="Prodotto creato", id=nuovo_id), 201
 
 
@@ -485,7 +404,6 @@ def api_modifica_prodotto(prodotto_id):
 
     DB_tool.aggiorna_prodotto(prodotto_id, dati, immagine, tipo,
                               rimuovi_immagine=request.form.get("rimuovi_immagine") == "1")
-    log("modifica_prodotto", f"Modificato #{prodotto_id} «{dati['nome']}»")
     return jsonify(successo=True, messaggio="Prodotto aggiornato")
 
 
@@ -496,7 +414,6 @@ def api_elimina_prodotto(prodotto_id):
     if p is None:
         return jsonify(successo=False, errore="Prodotto non trovato"), 404
     DB_tool.elimina_prodotto(prodotto_id)
-    log("elimina_prodotto", f"Eliminato #{prodotto_id} «{p['nome']}»")
     return jsonify(successo=True, messaggio="Prodotto eliminato")
 
 
@@ -516,7 +433,7 @@ def api_utenti():
 @app.post("/api/utenti")
 @solo_gestori
 def api_crea_utente():
-    """Un gestore può creare direttamente un utente già attivo (senza email di conferma)."""
+    """Un gestore può creare direttamente un nuovo utente, già attivo."""
     f = request.form
     username, email, password = f.get("username", "").strip(), f.get("email", "").strip().lower(), f.get("password", "")
     ruolo = f.get("ruolo", "base")
@@ -537,7 +454,6 @@ def api_crea_utente():
         return jsonify(successo=False, errore=" ".join(errori)), 400
 
     nuovo_id = DB_tool.crea_utente(username, email, sicurezza.hash_password(password), ruolo, attivo=True)
-    log("crea_utente", f"Creato utente «{username}» ({ruolo})")
     return jsonify(successo=True, messaggio="Utente creato", id=nuovo_id), 201
 
 
@@ -555,7 +471,6 @@ def api_modifica_utente(utente_id):
         return jsonify(successo=False, errore="Ruolo non valido"), 400
 
     DB_tool.aggiorna_utente(utente_id, ruolo, attivo)
-    log("modifica_utente", f"«{bersaglio['username']}»: ruolo {ruolo}, {'attivo' if attivo else 'disattivato'}")
     return jsonify(successo=True, messaggio="Utente aggiornato")
 
 
@@ -568,15 +483,7 @@ def api_elimina_utente(utente_id):
     if bersaglio is None:
         return jsonify(successo=False, errore="Utente non trovato"), 404
     DB_tool.elimina_utente(utente_id)
-    log("elimina_utente", f"Eliminato utente «{bersaglio['username']}»")
     return jsonify(successo=True, messaggio="Utente eliminato")
-
-
-@app.delete("/api/messaggi/<int:messaggio_id>")
-@solo_gestori
-def api_elimina_messaggio(messaggio_id):
-    DB_tool.elimina_messaggio(messaggio_id)
-    return jsonify(successo=True, messaggio="Messaggio eliminato")
 
 
 # =====================================================================
@@ -614,7 +521,5 @@ if __name__ == "__main__":
     if problema:
         print(f"\n❌ {problema}\n   Esegui prima:  python init_db.py\n")
         sys.exit(1)
-    if not email_tool.email_configurata():
-        print("ℹ️  Email non configurata nel file .env: i link di conferma verranno stampati qui.")
     print(f"✅ Server avviato su http://localhost:{config.PORTA}")
     app.run(host="0.0.0.0", port=config.PORTA, debug=config.DEBUG)

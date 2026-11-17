@@ -18,7 +18,7 @@ import pymysql.cursors
 
 import config
 
-TABELLE = ["log_attivita", "messaggi", "prodotti", "utenti"]
+TABELLE = ["prodotti", "utenti"]
 
 
 # =====================================================================
@@ -109,8 +109,6 @@ def crea_tabelle():
                     password_hash VARCHAR(255) NOT NULL,
                     ruolo ENUM('base', 'gestore') NOT NULL DEFAULT 'base',
                     attivo TINYINT(1) NOT NULL DEFAULT 0,
-                    token_conferma CHAR(64) NULL,
-                    scadenza_conferma DATETIME NULL,
                     ultimo_accesso DATETIME NULL,
                     creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -131,26 +129,6 @@ def crea_tabelle():
                     immagine_tipo VARCHAR(30) NULL,
                     creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     modificato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS log_attivita (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    utente_id INT NULL,
-                    username VARCHAR(30) NOT NULL,
-                    azione VARCHAR(30) NOT NULL,
-                    dettaglio VARCHAR(255) NOT NULL,
-                    creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE SET NULL
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            """)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS messaggi (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    nome VARCHAR(80) NOT NULL,
-                    email VARCHAR(120) NOT NULL,
-                    testo TEXT NOT NULL,
-                    creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
         conn.commit()
@@ -187,8 +165,7 @@ def verifica_struttura():
         return f"Impossibile collegarsi al database: {errore}"
 
     colonne = {(r["TABLE_NAME"].lower(), r["COLUMN_NAME"].lower()) for r in righe}
-    necessarie = [("utenti", "password_hash"), ("prodotti", "immagine"), ("prodotti", "categoria"),
-                  ("log_attivita", "azione"), ("messaggi", "testo")]
+    necessarie = [("utenti", "password_hash"), ("prodotti", "immagine"), ("prodotti", "categoria")]
     mancanti = [f"{t}.{c}" for t, c in necessarie if (t, c) not in colonne]
     if mancanti:
         return "Struttura del database mancante o vecchia (" + ", ".join(mancanti) + ")."
@@ -202,12 +179,11 @@ def verifica_struttura():
 CAMPI_UTENTE = "id, username, email, ruolo, attivo, ultimo_accesso, creato_il"
 
 
-def crea_utente(username, email, password_hash, ruolo="base", attivo=False,
-                token_conferma=None, scadenza_conferma=None):
+def crea_utente(username, email, password_hash, ruolo="base", attivo=False):
     return scrivi(
-        """INSERT INTO utenti (username, email, password_hash, ruolo, attivo, token_conferma, scadenza_conferma)
-           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-        (username, email.lower(), password_hash, ruolo, int(attivo), token_conferma, scadenza_conferma),
+        """INSERT INTO utenti (username, email, password_hash, ruolo, attivo)
+           VALUES (%s, %s, %s, %s, %s)""",
+        (username, email.lower(), password_hash, ruolo, int(attivo)),
     )
 
 
@@ -224,31 +200,12 @@ def trova_utente_per_login(username_o_email):
     )
 
 
-def trova_utente_per_email(email):
-    return leggi("SELECT * FROM utenti WHERE email = %s", (email.lower(),), uno=True)
-
-
 def esiste_username(username):
     return leggi("SELECT id FROM utenti WHERE username = %s", (username,), uno=True) is not None
 
 
 def esiste_email(email):
     return leggi("SELECT id FROM utenti WHERE email = %s", (email.lower(),), uno=True) is not None
-
-
-def trova_utente_per_token_conferma(token_hash):
-    return leggi("SELECT * FROM utenti WHERE token_conferma = %s", (token_hash,), uno=True)
-
-
-def attiva_utente(utente_id):
-    """Attiva l'account e cancella il token di conferma (così il link non si può riusare)."""
-    scrivi("UPDATE utenti SET attivo = 1, token_conferma = NULL, scadenza_conferma = NULL WHERE id = %s",
-           (utente_id,))
-
-
-def imposta_token_conferma(utente_id, token_hash, scadenza):
-    scrivi("UPDATE utenti SET token_conferma = %s, scadenza_conferma = %s WHERE id = %s",
-           (token_hash, scadenza, utente_id))
 
 
 def aggiorna_ultimo_accesso(utente_id):
@@ -383,14 +340,6 @@ def elenco_categorie():
     return [r["categoria"] for r in leggi("SELECT DISTINCT categoria FROM prodotti ORDER BY categoria")]
 
 
-def prodotti_in_evidenza(quanti=6):
-    """I prodotti disponibili più costosi con immagine: usati nella pagina azienda."""
-    righe = leggi(f"""SELECT {CAMPI_PRODOTTO} FROM prodotti
-                      WHERE disponibilita = 'Disponibile' AND immagine IS NOT NULL
-                      ORDER BY prezzo DESC LIMIT %s""", (quanti,))
-    return [_pulisci(r) for r in righe]
-
-
 def statistiche():
     """Numeri calcolati dal database con funzioni di aggregazione (COUNT, SUM, AVG, GROUP BY)."""
     totali = _pulisci(leggi("""
@@ -416,29 +365,3 @@ def statistiche():
     totali["utenti_attivi"] = utenti
     return {"totali": totali, "per_categoria": per_categoria}
 
-
-# =====================================================================
-#  REGISTRO ATTIVITÀ E MESSAGGI
-# =====================================================================
-
-def registra_attivita(utente_id, username, azione, dettaglio):
-    scrivi("INSERT INTO log_attivita (utente_id, username, azione, dettaglio) VALUES (%s, %s, %s, %s)",
-           (utente_id, username, azione, dettaglio[:255]))
-
-
-def ultime_attivita(quante=50):
-    return [_pulisci(r) for r in leggi(
-        "SELECT id, username, azione, dettaglio, creato_il FROM log_attivita ORDER BY id DESC LIMIT %s",
-        (quante,))]
-
-
-def salva_messaggio(nome, email, testo):
-    return scrivi("INSERT INTO messaggi (nome, email, testo) VALUES (%s, %s, %s)", (nome, email, testo))
-
-
-def elenco_messaggi():
-    return [_pulisci(r) for r in leggi("SELECT * FROM messaggi ORDER BY id DESC")]
-
-
-def elimina_messaggio(messaggio_id):
-    return scrivi("DELETE FROM messaggi WHERE id = %s", (messaggio_id,))

@@ -6,7 +6,7 @@ e crea due account pronti all'uso.
     python init_db.py          → chiede conferma prima di cancellare i dati
     python init_db.py --si     → nessuna domanda
 
-ATTENZIONE: cancella e ricrea le tabelle utenti, prodotti, log_attivita e messaggi.
+ATTENZIONE: cancella e ricrea le tabelle utenti e prodotti.
 """
 import json
 import os
@@ -63,7 +63,6 @@ def main():
     for username, email, password, ruolo in UTENTI_DEMO:
         DB_tool.crea_utente(username, email, sicurezza.hash_password(password), ruolo, attivo=True)
         print(f"✅ Utente {ruolo:8} →  username: {username:7}  password: {password}")
-    DB_tool.registra_attivita(None, "sistema", "init", "Database inizializzato con i dati di esempio")
 
     print("\nFatto! Ora avvia il sito con:  python main.py")
 

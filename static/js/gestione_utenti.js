@@ -46,7 +46,7 @@ function mostra(utenti) {
                 el('strong', { testo: u.username + (sonoIo ? ' (tu)' : '') }))),
             el('td', { testo: u.email }),
             el('td', {}, selectRuolo),
-            el('td', {}, interruttore, ' ', u.attivo ? '' : el('span', { classe: 'badge in-arrivo', testo: 'in attesa' })),
+            el('td', {}, interruttore, ' ', u.attivo ? '' : el('span', { classe: 'badge esaurito', testo: 'disattivato' })),
             el('td', { testo: dataIt(u.ultimo_accesso) }),
             el('td', { testo: dataIt(u.creato_il) }),
             el('td', {}, el('button', { classe: 'btn piccolo pericolo', disabled: sonoIo, onclick: () => elimina(u) }, '🗑 Elimina')),
