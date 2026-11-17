@@ -38,7 +38,7 @@ ORE_VALIDITA_CONFERMA = 24      # il link di conferma scade dopo 24 ore
 MAX_MB_IMMAGINE = 5             # dimensione massima di un'immagine caricata
 LATO_MAX_IMMAGINE = 900         # le immagini vengono ridimensionate a max 900 px
 
-# ---------- Dati dell'azienda (usati nel titolo delle pagine e nel footer) ----------
+# ---------- Dati dell'azienda (usati nella pagina /azienda e nel footer) ----------
 AZIENDA = {
     "nome": "Voltaria",
     "ragione_sociale": "Voltaria S.r.l.",

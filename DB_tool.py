@@ -18,7 +18,7 @@ import pymysql.cursors
 
 import config
 
-TABELLE = ["log_attivita", "prodotti", "utenti"]
+TABELLE = ["log_attivita", "messaggi", "prodotti", "utenti"]
 
 
 # =====================================================================
@@ -144,6 +144,15 @@ def crea_tabelle():
                     FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE SET NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS messaggi (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    nome VARCHAR(80) NOT NULL,
+                    email VARCHAR(120) NOT NULL,
+                    testo TEXT NOT NULL,
+                    creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
         conn.commit()
     finally:
         conn.close()
@@ -179,7 +188,7 @@ def verifica_struttura():
 
     colonne = {(r["TABLE_NAME"].lower(), r["COLUMN_NAME"].lower()) for r in righe}
     necessarie = [("utenti", "password_hash"), ("prodotti", "immagine"), ("prodotti", "categoria"),
-                  ("log_attivita", "azione")]
+                  ("log_attivita", "azione"), ("messaggi", "testo")]
     mancanti = [f"{t}.{c}" for t, c in necessarie if (t, c) not in colonne]
     if mancanti:
         return "Struttura del database mancante o vecchia (" + ", ".join(mancanti) + ")."
@@ -374,6 +383,14 @@ def elenco_categorie():
     return [r["categoria"] for r in leggi("SELECT DISTINCT categoria FROM prodotti ORDER BY categoria")]
 
 
+def prodotti_in_evidenza(quanti=6):
+    """I prodotti disponibili più costosi con immagine: usati nella pagina azienda."""
+    righe = leggi(f"""SELECT {CAMPI_PRODOTTO} FROM prodotti
+                      WHERE disponibilita = 'Disponibile' AND immagine IS NOT NULL
+                      ORDER BY prezzo DESC LIMIT %s""", (quanti,))
+    return [_pulisci(r) for r in righe]
+
+
 def statistiche():
     """Numeri calcolati dal database con funzioni di aggregazione (COUNT, SUM, AVG, GROUP BY)."""
     totali = _pulisci(leggi("""
@@ -401,7 +418,7 @@ def statistiche():
 
 
 # =====================================================================
-#  REGISTRO ATTIVITÀ
+#  REGISTRO ATTIVITÀ E MESSAGGI
 # =====================================================================
 
 def registra_attivita(utente_id, username, azione, dettaglio):
@@ -414,3 +431,14 @@ def ultime_attivita(quante=50):
         "SELECT id, username, azione, dettaglio, creato_il FROM log_attivita ORDER BY id DESC LIMIT %s",
         (quante,))]
 
+
+def salva_messaggio(nome, email, testo):
+    return scrivi("INSERT INTO messaggi (nome, email, testo) VALUES (%s, %s, %s)", (nome, email, testo))
+
+
+def elenco_messaggi():
+    return [_pulisci(r) for r in leggi("SELECT * FROM messaggi ORDER BY id DESC")]
+
+
+def elimina_messaggio(messaggio_id):
+    return scrivi("DELETE FROM messaggi WHERE id = %s", (messaggio_id,))

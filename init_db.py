@@ -6,7 +6,7 @@ e crea due account pronti all'uso.
     python init_db.py          → chiede conferma prima di cancellare i dati
     python init_db.py --si     → nessuna domanda
 
-ATTENZIONE: cancella e ricrea le tabelle utenti, prodotti e log_attivita.
+ATTENZIONE: cancella e ricrea le tabelle utenti, prodotti, log_attivita e messaggi.
 """
 import json
 import os

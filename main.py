@@ -114,12 +114,34 @@ def link_sicuro(destinazione):
 
 
 # =====================================================================
-#  HOME
+#  PAGINE PUBBLICHE: AZIENDA E CONTATTI
 # =====================================================================
 
 @app.get("/")
 def home():
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("azienda"))
+
+
+@app.get("/azienda")
+def azienda():
+    return render_template(
+        "azienda.html",
+        stat=DB_tool.statistiche(),
+        in_evidenza=DB_tool.prodotti_in_evidenza(6),
+    )
+
+
+@app.post("/contatti")
+def contatti():
+    nome = request.form.get("nome", "").strip()
+    email = request.form.get("email", "").strip()
+    testo = request.form.get("testo", "").strip()
+    if not nome or not sicurezza.valida_email(email) or len(testo) < 10:
+        flash("Compila tutti i campi: nome, email valida e un messaggio di almeno 10 caratteri.", "errore")
+    else:
+        DB_tool.salva_messaggio(nome[:80], email[:120], testo[:3000])
+        flash("Messaggio inviato! Ti risponderemo il prima possibile.", "successo")
+    return redirect(url_for("azienda") + "#contatti")
 
 
 # =====================================================================
@@ -281,7 +303,8 @@ def gestione_utenti():
 @app.get("/gestione/attivita")
 @solo_gestori
 def gestione_attivita():
-    return render_template("gestione/attivita.html", attivita=DB_tool.ultime_attivita(100))
+    return render_template("gestione/attivita.html", attivita=DB_tool.ultime_attivita(100),
+                           messaggi=DB_tool.elenco_messaggi())
 
 
 # =====================================================================
@@ -547,6 +570,13 @@ def api_elimina_utente(utente_id):
     DB_tool.elimina_utente(utente_id)
     log("elimina_utente", f"Eliminato utente «{bersaglio['username']}»")
     return jsonify(successo=True, messaggio="Utente eliminato")
+
+
+@app.delete("/api/messaggi/<int:messaggio_id>")
+@solo_gestori
+def api_elimina_messaggio(messaggio_id):
+    DB_tool.elimina_messaggio(messaggio_id)
+    return jsonify(successo=True, messaggio="Messaggio eliminato")
 
 
 # =====================================================================
