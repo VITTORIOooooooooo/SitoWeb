@@ -7,7 +7,7 @@ e il link viene stampato nel terminale: così l'app funziona anche senza email.
 import smtplib
 import ssl
 from email.message import EmailMessage
-
+import certifi
 import config
 
 
@@ -27,7 +27,7 @@ def invia_email(destinatario, oggetto, testo, html):
     msg.set_content(testo)                 # versione solo testo
     msg.add_alternative(html, subtype="html")  # versione grafica
 
-    contesto = ssl.create_default_context()
+    contesto = ssl.create_default_context(cafile=certifi.where())
     try:
         if config.MAIL_PORT == 465:
             with smtplib.SMTP_SSL(config.MAIL_SERVER, config.MAIL_PORT, context=contesto, timeout=15) as smtp:
