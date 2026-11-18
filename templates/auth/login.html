@@ -20,9 +20,13 @@
     </div>
     <div class="riga-flex">
         <label class="check"><input type="checkbox" name="ricordami"> Ricordami</label>
+        <a href="{{ url_for('password_dimenticata') }}">Password dimenticata?</a>
     </div>
     <button class="btn pieno" type="submit">Accedi</button>
 </form>
 
+{% if non_attivo %}
+<p class="piede"><a href="{{ url_for('reinvia_conferma') }}">Non hai ricevuto l'email? Inviala di nuovo</a></p>
+{% endif %}
 <p class="piede">Non hai un account? <a href="{{ url_for('registrati') }}">Registrati</a></p>
 {% endblock %}

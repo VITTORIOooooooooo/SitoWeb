@@ -1,6 +1,6 @@
 """
 sicurezza.py
-Funzioni di sicurezza: crittografia delle password e validazione dei dati.
+Funzioni di sicurezza: crittografia delle password, token casuali e validazione dei dati.
 """
 import hashlib
 import hmac
@@ -36,6 +36,21 @@ def verifica_password(password, hash_salvato):
     digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), sale.encode("utf-8"), int(iterazioni))
     # compare_digest confronta in tempo costante (evita i "timing attack")
     return hmac.compare_digest(digest.hex(), digest_salvato)
+
+
+# ======================= TOKEN =======================
+
+def genera_token():
+    """Token casuale e imprevedibile da mettere nei link inviati per email."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_token(token):
+    """
+    Nel database salviamo solo lo SHA-256 del token, non il token vero:
+    se qualcuno leggesse il database non potrebbe usare i link.
+    """
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 # ======================= VALIDAZIONE =======================

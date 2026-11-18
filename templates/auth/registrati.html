@@ -2,7 +2,7 @@
 {% block titolo %}Registrati{% endblock %}
 {% block riquadro %}
 <h1>Crea un account</h1>
-<p class="sottotitolo">Registrati per consultare il catalogo prodotti.</p>
+<p class="sottotitolo">Riceverai un'email per confermare l'indirizzo e attivare l'account.</p>
 
 <form method="post" action="{{ url_for('registrati') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

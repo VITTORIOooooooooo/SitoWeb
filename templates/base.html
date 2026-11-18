@@ -22,10 +22,11 @@
 
     <header class="topbar">
         <div class="contenitore">
-            <a class="logo" href="{{ url_for('home') }}"><span class="simbolo">⚡</span>{{ azienda.nome }}</a>
+            <a class="logo" href="{{ url_for('azienda') }}"><span class="simbolo">⚡</span>{{ azienda.nome }}</a>
 
             {% set pagina = request.endpoint or '' %}
             <nav class="menu" id="menu">
+                <a href="{{ url_for('azienda') }}" class="{{ 'attivo' if pagina == 'azienda' }}">Azienda</a>
                 {% if utente %}
                     <a href="{{ url_for('dashboard') }}" class="{{ 'attivo' if pagina == 'dashboard' }}">Dashboard</a>
                     {% if utente.ruolo == 'gestore' %}
@@ -40,11 +41,11 @@
             <div class="destra">
                 <button class="tema" onclick="cambiaTema()" aria-label="Cambia tema" title="Cambia tema">🌓</button>
                 {% if utente %}
-                    <span class="chip-utente">
+                    <a class="chip-utente" href="{{ url_for('profilo') }}" title="Il mio profilo">
                         <span class="avatar">{{ utente.username[:2] }}</span>
                         <span class="nome-utente">{{ utente.username }}</span>
                         <span class="ruolo {{ utente.ruolo }}">{{ utente.ruolo }}</span>
-                    </span>
+                    </a>
                     <form method="post" action="{{ url_for('logout') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                         <button class="btn pericolo piccolo" type="submit">Esci</button>
