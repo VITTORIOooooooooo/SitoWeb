@@ -38,6 +38,9 @@ ORE_VALIDITA_CONFERMA = 24      # il link di conferma scade dopo 24 ore
 MINUTI_VALIDITA_RESET = 30      # il link per reimpostare la password scade dopo 30 minuti
 MAX_MB_IMMAGINE = 5             # dimensione massima di un'immagine caricata
 LATO_MAX_IMMAGINE = 900         # le immagini vengono ridimensionate a max 900 px
+SOGLIA_SPEDIZIONE_GRATIS = 49    # sopra questa cifra (€) la spedizione è gratis
+COSTO_SPEDIZIONE = 5.90          # costo della spedizione sotto la soglia (€)
+MAX_PEZZI_PER_PRODOTTO = 10      # quantità massima di uno stesso prodotto nel carrello
 
 # ---------- Dati dell'azienda (usati nella pagina /azienda e nel footer) ----------
 AZIENDA = {

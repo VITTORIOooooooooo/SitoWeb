@@ -18,7 +18,7 @@ import pymysql.cursors
 
 import config
 
-TABELLE = ["log_attivita", "messaggi", "prodotti", "utenti"]
+TABELLE = ["righe_ordine", "ordini", "carrello", "log_attivita", "messaggi", "prodotti", "utenti"]
 
 
 # =====================================================================
@@ -155,6 +155,45 @@ def crea_tabelle():
                     creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """)
+            # Carrello: una riga per ogni prodotto nel carrello di un utente.
+            # La chiave primaria doppia (utente_id, prodotto_id) impedisce i doppioni.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS carrello (
+                    utente_id INT NOT NULL,
+                    prodotto_id INT NOT NULL,
+                    quantita INT NOT NULL,
+                    aggiunto_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (utente_id, prodotto_id),
+                    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE CASCADE,
+                    FOREIGN KEY (prodotto_id) REFERENCES prodotti(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ordini (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    utente_id INT NULL,
+                    username VARCHAR(30) NOT NULL,
+                    subtotale DECIMAL(10, 2) NOT NULL,
+                    spedizione DECIMAL(10, 2) NOT NULL,
+                    totale DECIMAL(10, 2) NOT NULL,
+                    creato_il DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (utente_id) REFERENCES utenti(id) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
+            # Nelle righe dell'ordine copio nome e prezzo: se poi il prodotto cambia
+            # o viene eliminato, l'ordine resta uguale a com'era al momento dell'acquisto.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS righe_ordine (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    ordine_id INT NOT NULL,
+                    prodotto_id INT NULL,
+                    nome_prodotto VARCHAR(100) NOT NULL,
+                    prezzo_unitario DECIMAL(10, 2) NOT NULL,
+                    quantita INT NOT NULL,
+                    FOREIGN KEY (ordine_id) REFERENCES ordini(id) ON DELETE CASCADE,
+                    FOREIGN KEY (prodotto_id) REFERENCES prodotti(id) ON DELETE SET NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """)
         conn.commit()
     finally:
         conn.close()
@@ -190,7 +229,8 @@ def verifica_struttura():
 
     colonne = {(r["TABLE_NAME"].lower(), r["COLUMN_NAME"].lower()) for r in righe}
     necessarie = [("utenti", "password_hash"), ("prodotti", "immagine"), ("prodotti", "categoria"),
-                  ("log_attivita", "azione"), ("messaggi", "testo")]
+                  ("log_attivita", "azione"), ("messaggi", "testo"), ("carrello", "quantita"),
+                  ("ordini", "totale"), ("righe_ordine", "prezzo_unitario")]
     mancanti = [f"{t}.{c}" for t, c in necessarie if (t, c) not in colonne]
     if mancanti:
         return "Struttura del database mancante o vecchia (" + ", ".join(mancanti) + ")."
@@ -458,3 +498,130 @@ def elenco_messaggi():
 
 def elimina_messaggio(messaggio_id):
     return scrivi("DELETE FROM messaggi WHERE id = %s", (messaggio_id,))
+
+
+# =====================================================================
+#  CARRELLO E ORDINI
+# =====================================================================
+
+def carrello_utente(utente_id):
+    """Prodotti nel carrello con i dati aggiornati presi dalla tabella prodotti (JOIN)."""
+    righe = leggi("""
+        SELECT c.prodotto_id, c.quantita, p.nome, p.categoria, p.prezzo,
+               p.quantita AS in_magazzino, p.disponibilita, p.modificato_il,
+               (p.immagine IS NOT NULL) AS ha_immagine,
+               p.prezzo * c.quantita AS subtotale
+        FROM carrello c
+        JOIN prodotti p ON p.id = c.prodotto_id
+        WHERE c.utente_id = %s
+        ORDER BY c.aggiunto_il, p.nome""", (utente_id,))
+    righe = [_pulisci(r) for r in righe]
+    for r in righe:
+        r["ha_immagine"] = bool(r["ha_immagine"])
+    return righe
+
+
+def conta_carrello(utente_id):
+    """Numero totale di pezzi nel carrello (per il contatore nella barra in alto)."""
+    riga = leggi("SELECT COALESCE(SUM(quantita), 0) AS n FROM carrello WHERE utente_id = %s",
+                 (utente_id,), uno=True)
+    return int(riga["n"])
+
+
+def quantita_nel_carrello(utente_id, prodotto_id):
+    riga = leggi("SELECT quantita FROM carrello WHERE utente_id = %s AND prodotto_id = %s",
+                 (utente_id, prodotto_id), uno=True)
+    return riga["quantita"] if riga else 0
+
+
+def aggiungi_al_carrello(utente_id, prodotto_id, quantita):
+    """Se il prodotto è già nel carrello ne aumenta la quantità, altrimenti lo inserisce."""
+    scrivi("""INSERT INTO carrello (utente_id, prodotto_id, quantita) VALUES (%s, %s, %s)
+              ON DUPLICATE KEY UPDATE quantita = quantita + %s""",
+           (utente_id, prodotto_id, quantita, quantita))
+
+
+def imposta_quantita_carrello(utente_id, prodotto_id, quantita):
+    return scrivi("UPDATE carrello SET quantita = %s WHERE utente_id = %s AND prodotto_id = %s",
+                  (quantita, utente_id, prodotto_id))
+
+
+def rimuovi_dal_carrello(utente_id, prodotto_id):
+    return scrivi("DELETE FROM carrello WHERE utente_id = %s AND prodotto_id = %s", (utente_id, prodotto_id))
+
+
+def svuota_carrello(utente_id):
+    return scrivi("DELETE FROM carrello WHERE utente_id = %s", (utente_id,))
+
+
+def crea_ordine(utente_id, username, soglia_spedizione_gratis, costo_spedizione):
+    """
+    Trasforma il carrello in un ordine usando una TRANSAZIONE:
+    o vanno a buon fine tutte le operazioni (ordine, righe, magazzino, carrello svuotato)
+    oppure nessuna (rollback). SELECT ... FOR UPDATE blocca le righe dei prodotti
+    finché la transazione non finisce, così due utenti non comprano lo stesso ultimo pezzo.
+    Restituisce l'id dell'ordine; se qualcosa non va solleva ValueError con il motivo.
+    """
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            conn.begin()
+            cursor.execute("""
+                SELECT c.prodotto_id, c.quantita, p.nome, p.prezzo, p.quantita AS in_magazzino, p.disponibilita
+                FROM carrello c JOIN prodotti p ON p.id = c.prodotto_id
+                WHERE c.utente_id = %s
+                FOR UPDATE""", (utente_id,))
+            righe = cursor.fetchall()
+            if not righe:
+                raise ValueError("Il carrello è vuoto.")
+            for r in righe:
+                if r["disponibilita"] != "Disponibile":
+                    raise ValueError(f"«{r['nome']}» non è più disponibile: rimuovilo dal carrello.")
+                if r["quantita"] > r["in_magazzino"]:
+                    raise ValueError(f"Di «{r['nome']}» sono rimasti solo {r['in_magazzino']} pezzi.")
+
+            subtotale = sum(r["prezzo"] * r["quantita"] for r in righe)
+            spedizione = Decimal("0") if subtotale >= soglia_spedizione_gratis else Decimal(str(costo_spedizione))
+            cursor.execute("""INSERT INTO ordini (utente_id, username, subtotale, spedizione, totale)
+                              VALUES (%s, %s, %s, %s, %s)""",
+                           (utente_id, username, subtotale, spedizione, subtotale + spedizione))
+            ordine_id = cursor.lastrowid
+
+            for r in righe:
+                cursor.execute("""INSERT INTO righe_ordine (ordine_id, prodotto_id, nome_prodotto, prezzo_unitario, quantita)
+                                  VALUES (%s, %s, %s, %s, %s)""",
+                               (ordine_id, r["prodotto_id"], r["nome"], r["prezzo"], r["quantita"]))
+                # scalo il magazzino; se finiscono i pezzi il prodotto diventa "Esaurito"
+                cursor.execute("""UPDATE prodotti
+                                  SET quantita = quantita - %s,
+                                      disponibilita = IF(quantita = 0, 'Esaurito', disponibilita)
+                                  WHERE id = %s""", (r["quantita"], r["prodotto_id"]))
+
+            cursor.execute("DELETE FROM carrello WHERE utente_id = %s", (utente_id,))
+        conn.commit()
+        return ordine_id
+    except Exception:
+        conn.rollback()   # annullo tutto quello che era stato fatto nella transazione
+        raise
+    finally:
+        conn.close()
+
+
+def _ordini_con_righe(where, parametri):
+    ordini = [_pulisci(o) for o in leggi(f"SELECT * FROM ordini {where} ORDER BY id DESC", parametri)]
+    if not ordini:
+        return []
+    segnaposto = ", ".join(["%s"] * len(ordini))
+    righe = leggi(f"SELECT * FROM righe_ordine WHERE ordine_id IN ({segnaposto}) ORDER BY id",
+                  [o["id"] for o in ordini])
+    for o in ordini:
+        o["righe"] = [_pulisci(r) for r in righe if r["ordine_id"] == o["id"]]
+    return ordini
+
+
+def ordini_utente(utente_id):
+    return _ordini_con_righe("WHERE utente_id = %s", (utente_id,))
+
+
+def tutti_gli_ordini():
+    return _ordini_con_righe("", ())

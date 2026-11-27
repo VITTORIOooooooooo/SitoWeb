@@ -7,7 +7,9 @@ e il link viene stampato nel terminale: così l'app funziona anche senza email.
 import smtplib
 import ssl
 from email.message import EmailMessage
+
 import certifi
+
 import config
 
 
@@ -27,6 +29,8 @@ def invia_email(destinatario, oggetto, testo, html):
     msg.set_content(testo)                 # versione solo testo
     msg.add_alternative(html, subtype="html")  # versione grafica
 
+    # Uso i certificati del pacchetto certifi: così la connessione sicura con Gmail
+    # funziona anche sui PC dove Python non trova i certificati del sistema
     contesto = ssl.create_default_context(cafile=certifi.where())
     try:
         if config.MAIL_PORT == 465:

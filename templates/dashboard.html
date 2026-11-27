@@ -47,6 +47,7 @@
     <table>
         <thead>
             <tr>
+                <th><input type="checkbox" id="seleziona-tutti" title="Seleziona tutti i disponibili" aria-label="Seleziona tutti"></th>
                 <th></th>
                 <th><button data-ordina="id">ID ↕</button></th>
                 <th><button data-ordina="nome">Nome ↕</button></th>
@@ -57,6 +58,7 @@
                 <th><button data-ordina="disponibilita">Disponibilità ↕</button></th>
                 <th><button data-ordina="data_uscita">Uscita ↕</button></th>
                 <th><button data-ordina="data_produzione">Produzione ↕</button></th>
+                <th>Carrello</th>
             </tr>
         </thead>
         <tbody id="tabella"></tbody>
@@ -64,6 +66,13 @@
 </div>
 
 <!-- Finestra con il dettaglio di un prodotto -->
+<!-- Barra che compare quando selezioni dei prodotti -->
+<div class="barra-selezione" id="barra-selezione" role="region" aria-label="Prodotti selezionati">
+    <span><strong id="n-selezionati">0</strong> prodotti selezionati</span>
+    <button class="btn secondario piccolo" id="annulla-selezione">Annulla</button>
+    <button class="btn" id="aggiungi-selezionati">🛒 Aggiungi al carrello</button>
+</div>
+
 <dialog id="dialogo-dettaglio">
     <div class="modale-testa"><h2 id="dettaglio-titolo">Prodotto</h2><button class="chiudi" onclick="this.closest('dialog').close()" aria-label="Chiudi">×</button></div>
     <div class="modale-corpo" id="dettaglio-corpo"></div>

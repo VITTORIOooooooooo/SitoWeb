@@ -2,7 +2,8 @@
 
 Applicazione web in **Python + Flask + MySQL** per un'azienda (di fantasia) di elettronica di consumo.
 Gli utenti si registrano con **conferma via email**, hanno **ruoli diversi** (base e gestore), consultano
-un catalogo letto **dal database** e i gestori possono **creare, modificare ed eliminare** prodotti, immagini e utenti.
+un catalogo letto **dal database**, lo **selezionano e lo aggiungono al carrello** fino alla conferma dell'ordine,
+e i gestori possono **creare, modificare ed eliminare** prodotti, immagini e utenti.
 
 ---
 
@@ -22,6 +23,11 @@ un catalogo letto **dal database** e i gestori possono **creare, modificare ed e
 | Pagina di riepilogo dell'azienda con navbar | `/azienda`: pagina lunga con navbar fissa che evidenzia la sezione corrente e barra di avanzamento della lettura. |
 
 ### Funzionalità aggiuntive
+- **Carrello e ordini**: dal catalogo si possono selezionare più prodotti (anche "seleziona tutti") o aggiungerne uno
+  con la quantità scelta. Il carrello è salvato nel database (tabella `carrello`), con contatore nella barra in alto.
+  La conferma dell'ordine avviene in una **transazione** (`BEGIN` → `SELECT ... FOR UPDATE` → `COMMIT`/`ROLLBACK`):
+  controlla la disponibilità, crea l'ordine, scala il magazzino (a 0 pezzi il prodotto diventa "Esaurito") e svuota
+  il carrello. Spedizione gratuita sopra i 49 €. Storico ordini per l'utente e pagina **Ordini** per i gestori.
 - **Gestione utenti** per i gestori: cambio ruolo, attivazione manuale, creazione ed eliminazione.
 - **Recupero password** via email con link a scadenza (30 minuti).
 - **Cambio password** dal profilo, con indicatore di robustezza.
@@ -58,10 +64,10 @@ SVILUPPO_WEB/
 │   ├── base.html        # struttura comune (barra in alto, footer)
 │   ├── auth/            # login, registrazione, conferma, password
 │   ├── gestione/        # area riservata ai gestori
-│   ├── dashboard.html, azienda.html, profilo.html, errore.html
+│   ├── dashboard.html, carrello.html, azienda.html, profilo.html, errore.html
 └── static/
     ├── stile.css
-    └── js/              # app.js (comune), dashboard, gestione, azienda
+    └── js/              # app.js (comune), dashboard, carrello, gestione, azienda
 ```
 
 ## Database
@@ -69,6 +75,9 @@ SVILUPPO_WEB/
 - **prodotti**: `id, nome, categoria, referente, descrizione, prezzo, quantita, disponibilita, data_uscita, data_produzione, immagine (MEDIUMBLOB), immagine_tipo, creato_il, modificato_il`
 - **log_attivita**: `id, utente_id (FK → utenti), username, azione, dettaglio, creato_il`
 - **messaggi**: `id, nome, email, testo, creato_il`
+- **carrello**: `utente_id, prodotto_id` (chiave primaria doppia), `quantita, aggiunto_il`
+- **ordini**: `id, utente_id, username, subtotale, spedizione, totale, creato_il`
+- **righe_ordine**: `id, ordine_id, prodotto_id, nome_prodotto, prezzo_unitario, quantita` (nome e prezzo copiati: l'ordine non cambia se cambia il prodotto)
 
 Nel database i token delle email sono salvati come hash SHA-256, non in chiaro.
 
@@ -107,3 +116,7 @@ Con Gmail: attiva la verifica in due passaggi, crea una **password per le app** 
 | POST / PUT / DELETE | `/api/prodotti[/<id>]` | gestori | Crea / modifica / elimina |
 | GET / POST / PUT / DELETE | `/api/utenti[/<id>]` | gestori | Gestione utenti |
 | GET | `/immagine/prodotto/<id>` | pubblico | Immagine letta dal database |
+| GET | `/carrello` | utenti loggati | Carrello e storico ordini |
+| GET / POST / PUT / DELETE | `/api/carrello[/<id>]` | utenti loggati | Leggi, aggiungi, cambia quantità, rimuovi/svuota |
+| POST | `/api/ordini` | utenti loggati | Conferma l'ordine (transazione) |
+| GET | `/gestione/ordini` | gestori | Tutti gli ordini ricevuti |

@@ -41,6 +41,9 @@
             <div class="destra">
                 <button class="tema" onclick="cambiaTema()" aria-label="Cambia tema" title="Cambia tema">🌓</button>
                 {% if utente %}
+                    <a class="carrello-link {{ 'attivo' if pagina == 'carrello' }}" href="{{ url_for('carrello') }}" title="Il mio carrello" aria-label="Carrello">
+                        🛒<span id="badge-carrello" class="badge-carrello {{ 'nascosto' if not pezzi_carrello }}">{{ pezzi_carrello }}</span>
+                    </a>
                     <a class="chip-utente" href="{{ url_for('profilo') }}" title="Il mio profilo">
                         <span class="avatar">{{ utente.username[:2] }}</span>
                         <span class="nome-utente">{{ utente.username }}</span>

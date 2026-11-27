@@ -70,11 +70,14 @@ def header_sicurezza(risposta):
 @app.context_processor
 def variabili_template():
     """Variabili disponibili in tutti i template HTML."""
+    utente = g.get("utente")
     return {
-        "utente": g.get("utente"),
+        "utente": utente,
         "csrf_token": session.get("csrf", ""),
         "azienda": config.AZIENDA,
         "anno": datetime.now().year,
+        # numero di pezzi nel carrello, mostrato nella barra in alto
+        "pezzi_carrello": DB_tool.conta_carrello(utente["id"]) if utente else 0,
     }
 
 
@@ -383,6 +386,12 @@ def gestione_attivita():
                            messaggi=DB_tool.elenco_messaggi())
 
 
+@app.get("/gestione/ordini")
+@solo_gestori
+def gestione_ordini():
+    return render_template("gestione/ordini.html", ordini=DB_tool.tutti_gli_ordini())
+
+
 # =====================================================================
 #  IMMAGINI SALVATE NEL DATABASE
 # =====================================================================
@@ -669,6 +678,126 @@ def api_elimina_utente(utente_id):
 def api_elimina_messaggio(messaggio_id):
     DB_tool.elimina_messaggio(messaggio_id)
     return jsonify(successo=True, messaggio="Messaggio eliminato")
+
+
+# =====================================================================
+#  CARRELLO E ORDINI (tutti gli utenti loggati)
+# =====================================================================
+
+@app.get("/carrello")
+@login_richiesto
+def carrello():
+    return render_template("carrello.html", ordini=DB_tool.ordini_utente(g.utente["id"]),
+                           soglia=config.SOGLIA_SPEDIZIONE_GRATIS, costo_spedizione=config.COSTO_SPEDIZIONE)
+
+
+def riepilogo_carrello():
+    """Contenuto del carrello + totali calcolati sul server (il client non decide i prezzi)."""
+    righe = [con_url_immagine(r | {"id": r["prodotto_id"]}) for r in DB_tool.carrello_utente(g.utente["id"])]
+    subtotale = round(sum(r["subtotale"] for r in righe), 2)
+    spedizione = 0 if subtotale >= config.SOGLIA_SPEDIZIONE_GRATIS or not righe else config.COSTO_SPEDIZIONE
+    return {
+        "righe": righe,
+        "pezzi": sum(r["quantita"] for r in righe),
+        "subtotale": subtotale,
+        "spedizione": spedizione,
+        "totale": round(subtotale + spedizione, 2),
+        "soglia": config.SOGLIA_SPEDIZIONE_GRATIS,
+    }
+
+
+def controlla_quantita(prodotto, quantita_totale):
+    """Restituisce un messaggio d'errore se il prodotto non si può avere in quella quantità."""
+    if prodotto["disponibilita"] != "Disponibile":
+        return f"«{prodotto['nome']}» non è acquistabile ({prodotto['disponibilita'].lower()})."
+    massimo = min(prodotto["quantita"], config.MAX_PEZZI_PER_PRODOTTO)
+    if quantita_totale > massimo:
+        return f"Puoi avere al massimo {massimo} pezzi di «{prodotto['nome']}»."
+    return None
+
+
+@app.get("/api/carrello")
+@login_richiesto
+def api_carrello():
+    return jsonify(successo=True, dati=riepilogo_carrello())
+
+
+@app.post("/api/carrello")
+@login_richiesto
+def api_aggiungi_carrello():
+    """Aggiunge uno o più prodotti (selezione multipla: più campi prodotto_id)."""
+    try:
+        ids = [int(x) for x in request.form.getlist("prodotto_id")]
+        quantita = int(request.form.get("quantita", "1"))
+    except ValueError:
+        return jsonify(successo=False, errore="Dati non validi."), 400
+    if not ids or quantita < 1:
+        return jsonify(successo=False, errore="Seleziona almeno un prodotto."), 400
+
+    aggiunti, errori = 0, []
+    for prodotto_id in dict.fromkeys(ids):           # dict.fromkeys toglie i doppioni
+        prodotto = DB_tool.recupera_prodotto(prodotto_id)
+        if prodotto is None:
+            errori.append(f"Prodotto #{prodotto_id} inesistente.")
+            continue
+        gia_presenti = DB_tool.quantita_nel_carrello(g.utente["id"], prodotto_id)
+        problema = controlla_quantita(prodotto, gia_presenti + quantita)
+        if problema:
+            errori.append(problema)
+            continue
+        DB_tool.aggiungi_al_carrello(g.utente["id"], prodotto_id, quantita)
+        aggiunti += 1
+
+    pezzi = DB_tool.conta_carrello(g.utente["id"])
+    if aggiunti == 0:
+        return jsonify(successo=False, errore=" ".join(errori), pezzi=pezzi), 400
+    messaggio = "Aggiunto al carrello" if aggiunti == 1 else f"{aggiunti} prodotti aggiunti al carrello"
+    return jsonify(successo=True, messaggio=messaggio, avvisi=errori, pezzi=pezzi)
+
+
+@app.put("/api/carrello/<int:prodotto_id>")
+@login_richiesto
+def api_modifica_carrello(prodotto_id):
+    prodotto = DB_tool.recupera_prodotto(prodotto_id)
+    try:
+        quantita = int(request.form.get("quantita", ""))
+    except ValueError:
+        return jsonify(successo=False, errore="Quantità non valida."), 400
+    if prodotto is None or DB_tool.quantita_nel_carrello(g.utente["id"], prodotto_id) == 0:
+        return jsonify(successo=False, errore="Il prodotto non è nel carrello."), 404
+    if quantita < 1:
+        return jsonify(successo=False, errore="La quantità minima è 1."), 400
+    problema = controlla_quantita(prodotto, quantita)
+    if problema:
+        return jsonify(successo=False, errore=problema), 400
+    DB_tool.imposta_quantita_carrello(g.utente["id"], prodotto_id, quantita)
+    return jsonify(successo=True, dati=riepilogo_carrello())
+
+
+@app.delete("/api/carrello/<int:prodotto_id>")
+@login_richiesto
+def api_rimuovi_carrello(prodotto_id):
+    DB_tool.rimuovi_dal_carrello(g.utente["id"], prodotto_id)
+    return jsonify(successo=True, messaggio="Prodotto rimosso", dati=riepilogo_carrello())
+
+
+@app.delete("/api/carrello")
+@login_richiesto
+def api_svuota_carrello():
+    DB_tool.svuota_carrello(g.utente["id"])
+    return jsonify(successo=True, messaggio="Carrello svuotato", dati=riepilogo_carrello())
+
+
+@app.post("/api/ordini")
+@login_richiesto
+def api_crea_ordine():
+    try:
+        ordine_id = DB_tool.crea_ordine(g.utente["id"], g.utente["username"],
+                                        config.SOGLIA_SPEDIZIONE_GRATIS, config.COSTO_SPEDIZIONE)
+    except ValueError as e:
+        return jsonify(successo=False, errore=str(e)), 400
+    log("ordine", f"Ordine #{ordine_id} confermato")
+    return jsonify(successo=True, messaggio=f"Ordine #{ordine_id} confermato!", id=ordine_id), 201
 
 
 # =====================================================================

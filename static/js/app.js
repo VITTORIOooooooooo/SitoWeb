@@ -134,3 +134,31 @@ document.querySelectorAll('[data-robustezza]').forEach(input => {
         barra.style.background = colori[punti];
     });
 });
+
+/* ---------- Carrello: funzioni usate da più pagine ---------- */
+function aggiornaBadgeCarrello(pezzi) {
+    const badge = document.getElementById('badge-carrello');
+    if (!badge) return;
+    badge.textContent = pezzi;
+    badge.classList.toggle('nascosto', !pezzi);
+    badge.classList.remove('salta');
+    void badge.offsetWidth;            // riavvia l'animazione
+    badge.classList.add('salta');
+}
+
+/* Aggiunge al carrello uno o più prodotti (ids = array di id) */
+async function aggiungiAlCarrello(ids, quantita = 1) {
+    const dati = new FormData();
+    ids.forEach(id => dati.append('prodotto_id', id));
+    dati.set('quantita', quantita);
+    try {
+        const r = await api('/api/carrello', 'POST', dati);
+        aggiornaBadgeCarrello(r.pezzi);
+        toast(r.messaggio);
+        r.avvisi.forEach(a => toast(a, 'errore'));
+        return true;
+    } catch (e) {
+        toast(e.message, 'errore');
+        return false;
+    }
+}
