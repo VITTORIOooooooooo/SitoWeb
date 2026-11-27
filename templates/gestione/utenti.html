@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block titolo %}Gestione utenti{% endblock %}
+{% block contenuto %}
+<div class="intestazione">
+    <div>
+        <h1>Gestione utenti</h1>
+        <p>Cambia il ruolo, attiva o disattiva gli account, crea ed elimina utenti.</p>
+    </div>
+    <div class="azioni"><button class="btn" id="nuovo-utente">＋ Nuovo utente</button></div>
+</div>
+
+{% include "gestione/_menu.html" %}
+
+<div class="filtri card" style="margin:0 0 16px">
+    <div class="campo"><label for="u-cerca">Cerca</label><input id="u-cerca" type="search" placeholder="Username o email"></div>
+    <div class="campo">
+        <label for="u-ruolo">Ruolo</label>
+        <select id="u-ruolo"><option value="">Tutti</option><option value="base">Base</option><option value="gestore">Gestore</option></select>
+    </div>
+</div>
+
+<div class="barra-risultati"><span id="conteggio">Caricamento...</span></div>
+
+<div class="card tabella">
+    <table>
+        <thead>
+            <tr><th>ID</th><th>Utente</th><th>Email</th><th>Ruolo</th><th>Attivo</th><th>Ultimo accesso</th><th>Iscritto il</th><th>Azioni</th></tr>
+        </thead>
+        <tbody id="tabella"></tbody>
+    </table>
+</div>
+<p class="muto" style="font-size:14px">Gli account <em>non attivi</em> sono quelli che non hanno ancora confermato l'email: puoi attivarli a mano con l'interruttore.</p>
+
+<dialog id="dialogo-utente">
+    <form id="form-utente" novalidate>
+        <div class="modale-testa">
+            <h2>Nuovo utente</h2>
+            <button type="button" class="chiudi" onclick="this.closest('dialog').close()" aria-label="Chiudi">×</button>
+        </div>
+        <div class="modale-corpo">
+            <div class="form-griglia">
+                <div class="campo"><label for="n-username">Username</label><input id="n-username" name="username" required></div>
+                <div class="campo"><label for="n-email">Email</label><input id="n-email" name="email" type="email" required></div>
+                <div class="campo"><label for="n-password">Password</label><input id="n-password" name="password" type="text" required placeholder="Min. 8, maiuscola, numero"></div>
+                <div class="campo"><label for="n-ruolo">Ruolo</label><select id="n-ruolo" name="ruolo"><option value="base">Base</option><option value="gestore">Gestore</option></select></div>
+            </div>
+            <p class="muto" style="font-size:14px;margin-bottom:0">L'account creato da un gestore è già attivo (non serve la conferma email).</p>
+            <p class="errore-form" id="errore-utente" role="alert"></p>
+        </div>
+        <div class="modale-piede">
+            <button type="button" class="btn secondario" onclick="this.closest('dialog').close()">Annulla</button>
+            <button type="submit" class="btn">Crea utente</button>
+        </div>
+    </form>
+</dialog>
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='js/gestione_utenti.js') }}"></script>
+{% endblock %}

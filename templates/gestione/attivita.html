@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titolo %}Attività e messaggi{% endblock %}
+{% block contenuto %}
+<div class="intestazione">
+    <div>
+        <h1>Attività e messaggi</h1>
+        <p>Chi ha fatto cosa (registro salvato nel database) e i messaggi arrivati dal modulo contatti.</p>
+    </div>
+</div>
+
+{% include "gestione/_menu.html" %}
+
+<div class="due-colonne">
+    <section class="card blocco">
+        <h2>🕑 Registro attività <small class="muto" style="font-weight:400">(ultime 100)</small></h2>
+        <ul class="registro">
+            {% for a in attivita %}
+            <li>
+                <span class="azione {{ a.azione }}">{{ a.azione.replace('_', ' ') }}</span>
+                <span><strong>{{ a.username }}</strong> — {{ a.dettaglio }}</span>
+                <time>{{ a.creato_il }}</time>
+            </li>
+            {% else %}
+            <li class="muto">Nessuna attività registrata.</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="card blocco">
+        <h2>✉️ Messaggi dal sito <small class="muto" style="font-weight:400">({{ messaggi|length }})</small></h2>
+        {% for m in messaggi %}
+        <article class="messaggio" id="messaggio-{{ m.id }}">
+            <header>
+                <div><strong>{{ m.nome }}</strong> · <a href="mailto:{{ m.email }}">{{ m.email }}</a><br><small class="muto">{{ m.creato_il }}</small></div>
+                <button class="btn pericolo piccolo" data-elimina-messaggio="{{ m.id }}">Elimina</button>
+            </header>
+            <p>{{ m.testo }}</p>
+        </article>
+        {% else %}
+        <p class="muto">Nessun messaggio. Arriveranno qui quelli inviati dal modulo nella pagina Azienda.</p>
+        {% endfor %}
+    </section>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+document.querySelectorAll('[data-elimina-messaggio]').forEach(b => b.addEventListener('click', async () => {
+    if (!await conferma('Eliminare il messaggio?', 'Il messaggio verrà cancellato definitivamente dal database.')) return;
+    try {
+        await api('/api/messaggi/' + b.dataset.eliminaMessaggio, 'DELETE');
+        document.getElementById('messaggio-' + b.dataset.eliminaMessaggio).remove();
+        toast('Messaggio eliminato');
+    } catch (e) { toast(e.message, 'errore'); }
+}));
+</script>
+{% endblock %}

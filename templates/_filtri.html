@@ -1,0 +1,53 @@
+{# Ricerca e filtri condivisi tra dashboard e gestione prodotti.
+   Ogni modifica fa partire una nuova richiesta a /api/prodotti → query SQL sul database. #}
+<div class="barra-ricerca">
+    <span class="icona-ricerca">🔍</span>
+    <input id="q" type="search" placeholder="Cerca per nome, categoria, referente, descrizione o ID..." autocomplete="off">
+</div>
+
+<div class="chips" id="chips-disponibilita">
+    <button class="chip attivo" data-valore="">Tutti</button>
+    {% for d in disponibilita %}<button class="chip" data-valore="{{ d }}">{{ d }}</button>{% endfor %}
+</div>
+
+<details class="filtri-avanzati" style="margin-top:14px">
+    <summary>Filtri avanzati</summary>
+    <section class="filtri card">
+        <div class="campo">
+            <label for="categoria">Categoria</label>
+            <select id="categoria">
+                <option value="">Tutte</option>
+                {% for c in categorie %}<option>{{ c }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="campo"><label for="prezzo_min">Prezzo minimo (€)</label><input id="prezzo_min" type="number" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="campo"><label for="prezzo_max">Prezzo massimo (€)</label><input id="prezzo_max" type="number" min="0" step="0.01" placeholder="2000,00"></div>
+        <div class="campo"><label for="uscita_da">Uscita dal</label><input id="uscita_da" type="date"></div>
+        <div class="campo"><label for="uscita_a">Uscita fino al</label><input id="uscita_a" type="date"></div>
+        <div class="campo">
+            <label for="ordina">Ordina per</label>
+            <select id="ordina">
+                <option value="id">ID</option>
+                <option value="nome">Nome</option>
+                <option value="categoria">Categoria</option>
+                <option value="referente">Referente</option>
+                <option value="prezzo">Prezzo</option>
+                <option value="quantita">Quantità</option>
+                <option value="disponibilita">Disponibilità</option>
+                <option value="data_uscita">Data di uscita</option>
+                <option value="data_produzione">Data di produzione</option>
+            </select>
+        </div>
+        <div class="campo">
+            <label for="direzione">Direzione</label>
+            <select id="direzione">
+                <option value="asc">Crescente (A→Z, 0→9)</option>
+                <option value="desc">Decrescente (Z→A, 9→0)</option>
+            </select>
+        </div>
+        <div class="campo">
+            <label>&nbsp;</label>
+            <button class="btn grigio" type="button" id="reset-filtri">Azzera filtri</button>
+        </div>
+    </section>
+</details>

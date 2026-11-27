@@ -1,0 +1,14 @@
+{# Messaggi "flash" inviati dal server con flash("testo", "tipo") #}
+{% with messaggi = get_flashed_messages(with_categories=true) %}
+    {% if messaggi %}
+    <div class="flash-lista">
+        {% for tipo, testo in messaggi %}
+            <div class="flash {{ tipo }}" role="alert">
+                <span>{{ {'successo': '✅', 'errore': '⚠️'}.get(tipo, 'ℹ️') }}</span>
+                <span>{{ testo }}</span>
+                <button type="button" onclick="this.parentElement.remove()" aria-label="Chiudi">×</button>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endwith %}
